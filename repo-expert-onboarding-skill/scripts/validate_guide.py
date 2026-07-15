@@ -20,16 +20,32 @@ MERMAID_START_RE = re.compile(
     r"gitGraph|graph|journey|mindmap|packet-beta|pie|quadrantChart|sequenceDiagram|"
     r"stateDiagram(?:-v2)?|timeline|xychart-beta)\b"
 )
-LINE_ANCHOR_RE = re.compile(r"L(\d+)(?:-L(\d+))?")
-COMMIT_RE = re.compile(r"(?:Commit|Revision|SHA)\s*:\s*`([0-9a-fA-F]{7,40})`", re.I)
-BRANCH_RE = re.compile(r"Branch\s*:\s*`?([^`\n]+?)`?\s*$", re.I | re.M)
+LINE_ANCHOR_RE = re.compile(r"L(\d+)(?:C\d+)?(?:-L(\d+)(?:C\d+)?)?")
+COMMIT_RE = re.compile(r"(?:Commit|Revision|SHA)\s*:\s*\**`?([0-9a-fA-F]{7,40})\b`?", re.I)
+BRANCH_RE = re.compile(r"Branch\s*:\s*\**`?([^`*\s]+)", re.I)
 DATE_RE = re.compile(r"Analy[sz]ed\s*:\s*`?(\d{4}-\d{2}-\d{2})`?", re.I)
 DIRTY_RE = re.compile(r"Working tree[^:\n]*:\s*([^\n]+)", re.I)
 UPSTREAM_RE = re.compile(
     r"Upstream divergence\s*:\s*(?:ahead\s+(\d+)\s*,\s*behind\s+(\d+)|(unknown))",
     re.I,
 )
+# Deliberately case-sensitive: lowercase "todo"/"placeholder" are common domain
+# words in guides (agent todo lists, config placeholder preservation).
 PLACEHOLDER_RE = re.compile(r"\b(?:TODO|TBD|FIXME|PLACEHOLDER)\b|\?\?\?")
+NUMBERED_RE = re.compile(r"^(\d+[a-z]?)-(.+)$")
+GENERIC_STEMS = {
+    "big-picture", "setup-entrypoints-and-configuration", "runtime-flow",
+    "core-domain-model", "state-storage-memory-and-context",
+    "tools-integrations-and-extension-points", "user-interfaces-apis-and-clients",
+    "uis-apis-and-clients", "security-permissions-and-trust-model",
+    "testing-debugging-and-observability", "change-playbooks",
+}
+REQUIRED_FILES = ("appendix-code-map.md", "appendix-coverage-and-evidence.md")
+REFDEF_RE = re.compile(r"^\s{0,3}\[([^\]]+)\]:\s*<?(\S+?)>?(?:\s+[\"'(].*)?$", re.M)
+MIN_SNIPPET_LINES = 3
+MIN_SNIPPET_CHARS = 80
+MIN_DIAGRAM_LINES = 3
+MIN_NUMBERED_WORDS = 50
 
 
 @dataclass(frozen=True)
@@ -130,6 +146,24 @@ def inline_links(text: str) -> list[str]:
     return links
 
 
+def reference_links(text: str) -> list[str]:
+    """Resolve reference-style links: [text][label] and collapsed [label][]."""
+    refdefs = {
+        match.group(1).strip().lower(): match.group(2)
+        for match in REFDEF_RE.finditer(text)
+    }
+    destinations: list[str] = []
+    for match in re.finditer(r"\[([^\]]+)\]\[([^\]]*)\]", text):
+        label = (match.group(2) or match.group(1)).strip().lower()
+        if label in refdefs:
+            destinations.append(refdefs[label])
+    return destinations
+
+
+def local_links(text: str) -> list[str]:
+    return inline_links(text) + reference_links(text)
+
+
 def heading_anchors(text: str) -> set[str]:
     anchors: set[str] = set()
     counts: dict[str, int] = {}
@@ -145,7 +179,9 @@ def heading_anchors(text: str) -> set[str]:
     for raw_title in titles:
         title = re.sub(r"!?(?:\[([^]]+)\]\([^)]+\))", r"\1", raw_title)
         title = re.sub(r"<[^>]+>", "", title)
-        title = re.sub(r"[`*_~]", "", title).strip().lower()
+        # Strip code/emphasis markup but keep underscores: GitHub slugs preserve
+        # them, and code-identifier headings (run_agent) are common in guides.
+        title = re.sub(r"[`*~]", "", title).strip().lower()
         slug = re.sub(r"[^\w\- ]", "", title, flags=re.UNICODE).replace(" ", "-")
         suffix = counts.get(slug, 0)
         counts[slug] = suffix + 1
@@ -163,6 +199,49 @@ def local_target(document: Path, destination: str) -> tuple[Path, str] | None:
 
 def normalized_source(text: str) -> str:
     return "\n".join(line.rstrip() for line in textwrap.dedent(text).strip().splitlines())
+
+
+def mermaid_kind(body: str) -> str | None:
+    """Return the diagram keyword, skipping frontmatter, %% directives, comments."""
+    lines = body.splitlines()
+    index = 0
+    if index < len(lines) and lines[index].strip() == "---":
+        index += 1
+        while index < len(lines) and lines[index].strip() != "---":
+            index += 1
+        index += 1
+    while index < len(lines):
+        stripped = lines[index].strip()
+        if not stripped or stripped.startswith("%%"):
+            index += 1
+            continue
+        match = MERMAID_START_RE.match(stripped)
+        return match.group(0) if match else None
+    return None
+
+
+def substantial_snippet(fence: Fence) -> bool:
+    lines = [line for line in fence.body.splitlines() if line.strip()]
+    return len(lines) >= MIN_SNIPPET_LINES or len(fence.body.strip()) >= MIN_SNIPPET_CHARS
+
+
+def rationale_section(prose: str) -> str | None:
+    """Return the Structure rationale section text, or None when absent."""
+    lines = prose.splitlines()
+    for index, line in enumerate(lines):
+        heading = re.match(r"^(#{1,6})\s+.*structure rationale", line, re.I)
+        inline = re.match(r"^\s*(?:[-*]\s+)?\**structure rationale\**\s*:", line, re.I)
+        if not heading and not inline:
+            continue
+        level = len(heading.group(1)) if heading else 7
+        body = [line]
+        for next_line in lines[index + 1 :]:
+            next_heading = re.match(r"^(#{1,6})\s", next_line)
+            if next_heading and len(next_heading.group(1)) <= level:
+                break
+            body.append(next_line)
+        return "\n".join(body)
+    return None
 
 
 def snippet_has_source_link(document: Path, prose_lines: list[str], fence: Fence, repo: Path) -> bool:
@@ -212,10 +291,26 @@ def main() -> int:
     readme = guide / "README.md"
     if not readme.exists():
         errors.append("guide has no README.md index")
+    for required in REQUIRED_FILES:
+        if not (guide / required).exists():
+            errors.append(f"guide is missing required file {required}")
+
+    numbered = [d for d in markdown if NUMBERED_RE.match(d.stem)]
+    numbered_set = set(numbered)
+    generic = sorted(
+        d.name for d in numbered if NUMBERED_RE.match(d.stem).group(2) in GENERIC_STEMS
+    )
+    if numbered and len(generic) >= max(3, (len(numbered) + 1) // 2):
+        errors.append(
+            "file plan is dominated by generic template names instead of this "
+            "repository's subsystems: " + ", ".join(generic)
+        )
 
     texts: dict[Path, str] = {}
     prose_texts: dict[Path, str] = {}
     diagrams = snippets = local_link_count = 0
+    mermaid_seen: set[str] = set()
+    sequence_found = False
 
     for document in markdown:
         text = document.read_text(encoding="utf-8")
@@ -226,19 +321,30 @@ def main() -> int:
         placeholders = sorted(set(PLACEHOLDER_RE.findall(prose)))
         if placeholders:
             errors.append(f"{document.name}: contains prose placeholders: {placeholders}")
+        if document in numbered_set and len(prose.split()) < MIN_NUMBERED_WORDS:
+            errors.append(
+                f"{document.name}: under {MIN_NUMBERED_WORDS} words of prose; looks like a stub"
+            )
 
         prose_lines = prose.splitlines()
-        diagrams += sum(
-            f.language == "mermaid" and bool(MERMAID_START_RE.match(f.body)) for f in fences
-        )
+        for fence in fences:
+            if fence.language == "mermaid":
+                kind = mermaid_kind(fence.body)
+                body_lines = [line for line in fence.body.splitlines() if line.strip()]
+                key = normalized_source(fence.body)
+                if kind and len(body_lines) >= MIN_DIAGRAM_LINES and key not in mermaid_seen:
+                    mermaid_seen.add(key)
+                    diagrams += 1
+                    if kind.startswith("sequenceDiagram"):
+                        sequence_found = True
         snippets += sum(
             f.language not in NON_SOURCE_LANGS
-            and bool(f.body)
+            and substantial_snippet(f)
             and snippet_has_source_link(document, prose_lines, f, repo)
             for f in fences
         )
 
-        for destination in inline_links(prose):
+        for destination in local_links(prose):
             target = local_target(document, destination)
             if not target:
                 continue
@@ -263,6 +369,10 @@ def main() -> int:
 
     if diagrams < args.min_diagrams:
         errors.append(f"found {diagrams} non-empty Mermaid diagrams; require {args.min_diagrams}")
+    elif not sequence_found:
+        warnings.append(
+            "no sequenceDiagram found; the end-to-end runtime sequence diagram may be missing"
+        )
     if snippets < args.min_source_snippets:
         errors.append(
             f"found {snippets} non-empty source snippets with nearby source links; "
@@ -271,8 +381,16 @@ def main() -> int:
 
     index = texts.get(readme, "")
     if readme.exists():
+        section = rationale_section(prose_texts[readme])
+        if section is None:
+            errors.append("README.md does not declare structure rationale")
+        else:
+            for document in numbered:
+                if document.stem not in section and document.name not in section:
+                    errors.append(f"structure rationale does not mention {document.name}")
+
         indexed: set[Path] = set()
-        for destination in inline_links(prose_texts[readme]):
+        for destination in local_links(prose_texts[readme]):
             target = local_target(readme, destination)
             if target and target[0].suffix.lower() == ".md":
                 indexed.add(target[0])
@@ -318,6 +436,14 @@ def main() -> int:
                 errors.append(
                     f"guide commit {commit_match.group(1)} does not match HEAD {head.stdout.strip()}"
                 )
+
+    coverage = guide / "appendix-coverage-and-evidence.md"
+    if coverage.exists():
+        coverage_prose = prose_texts.get(coverage, "")
+        if not re.search(r"^#{1,6}\s+Structure-fit review\b", coverage_prose, re.I | re.M):
+            errors.append(
+                "appendix-coverage-and-evidence.md has no `Structure-fit review` section"
+            )
 
     if args.check_upstream:
         upstream = git(repo, "rev-parse", "--abbrev-ref", "@{upstream}")
