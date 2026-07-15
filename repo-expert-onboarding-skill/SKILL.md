@@ -1,6 +1,6 @@
 ---
 name: repo-expert-onboarding
-description: Create an expert-level onboarding guide for any software repository by inspecting the codebase, delegating focused analysis to subagents when available, classifying the repository against domain modules (agent harness, web app, data pipeline, CLI/library, evals/benchmark, infrastructure), and deriving a repository-specific guide structure from a coverage matrix — producing validated documentation with diagrams, source references, and code snippets.
+description: Create an expert-level onboarding guide for any software repository by inspecting the codebase, delegating focused analysis to subagents when available, classifying the repository against domain modules (agent harness, web app, data pipeline, CLI/library, evals/benchmark, infrastructure, spec/DSL framework), and deriving a repository-specific guide structure from a coverage matrix — producing validated documentation with diagrams, source references, and code snippets.
 ---
 
 # Repo Expert Onboarding
@@ -75,6 +75,7 @@ After the inventory, decide which domain modules describe this repository. Most 
 - `<skill-dir>/references/cli-library.md` — command surfaces, TUIs, published packages, releases, supply-chain controls.
 - `<skill-dir>/references/evals-benchmark.md` — task/dataset definitions, system-under-test adapters, scoring and judges, run matrices, results lifecycle, statistical rigor.
 - `<skill-dir>/references/infrastructure.md` — IaC stacks and state, environments and promotion, plan/apply and GitOps lifecycle, secrets and identity, blast radius.
+- `<skill-dir>/references/spec-framework.md` — prompt/spec/DSL frameworks: definition language and schema, spec-vs-implementation drift, compiler/emitter, composition and inheritance, provenance auditing, vocabulary evolution.
 
 Each matched module contributes required topics and investigation questions: merge them into the coverage matrix as rows. Modules never dictate file names, file counts, or file boundaries.
 
