@@ -17,7 +17,8 @@ The goal is not a README summary. The goal is a source-grounded expert guide tha
 4. Investigate deeply, with subagents when available, until every matrix row is resolved.
 5. Derive the file plan from the resolved matrix. Structure is an output of investigation, never a preset.
 6. Write the guide and wire it into the repository's agent docs.
-7. Validate: bundled script, semantic checks, and an independent critic whose structure verdict is recorded in the guide.
+7. Run the self-containment pass: walk the numbered files in reading order with a cumulative ledger of introduced terms, and gloss or link every term that runs ahead of its home file (see "Self-Containment").
+8. Validate: bundled script, semantic checks, and an independent critic whose structure and self-containment verdicts are recorded in the guide.
 
 If the output directory already contains a guide, switch to the update flow in "Updating an Existing Guide" instead of regenerating.
 
@@ -150,7 +151,8 @@ Recommended subagents:
    - After the guide draft exists, independently check it for unsupported claims, missing important files, unclear diagrams, stale paths, and gaps.
    - Check alternate entrypoints and tests for contradictions. Challenge every security, persistence, retry, cancellation, rollback, cleanup, and isolation claim.
    - Check the file plan against the repository: would a knowledgeable maintainer name different sections, or give the heaviest subsystem more room? Flag any structure that mirrors this skill's illustrations or generic category names instead of this repository's subsystems. Verify every line of the README structure rationale against the coverage matrix and the code it claims to cover.
-   - Record the critic's verdict verbatim in a `Structure-fit review` section of `appendix-coverage-and-evidence.md`, together with how each objection was resolved. The validator requires this section. When no subagents are available, perform this pass yourself after a break from drafting and record it the same way.
+   - Judge reading order: walk the numbered files in sequence and flag what no script can catch — thin definitions (a defining-shaped sentence that names but does not explain the mechanism), wrong-mental-model traps (a term that pattern-matches an already-introduced family but is a different mechanism, undisambiguated), and two-sense terms used before either sense is defined. Triage the validator's `self-containment:` warnings, strong candidates first: each is either a real gap to fix or a false positive to dismiss with a reason.
+   - Record the critic's verdicts verbatim in the `Structure-fit review` and `Self-containment review` sections of `appendix-coverage-and-evidence.md`, together with how each objection was resolved. The validator requires both sections. When no subagents are available, perform this pass yourself after a break from drafting and record it the same way.
 
 Run the critic on the draft without giving it your conclusions. If capacity permits, use a separate critic for security/deployment because happy-path architecture reviews routinely miss exposed control planes and unsafe defaults.
 
@@ -293,7 +295,7 @@ Every guide should include:
 - Explanation of configuration, environment variables, and entrypoints.
 - Explanation of tests and how to validate changes.
 - A change playbook for common modifications.
-- A glossary of repo-specific vocabulary if the repo has domain terms.
+- Optionally, a glossary as a back-of-book index ("where is this defined"), never as the place a first-time reader is sent to understand a sentence. Definitions live in the prose (see "Self-Containment").
 - A final "expert checklist" that tells the reader what they should understand.
 - A coverage/evidence appendix containing the subsystem matrix, the structure-fit review, known unknowns, stale or contradictory repo docs, and intentionally omitted areas.
 
@@ -319,6 +321,22 @@ def important_entrypoint(...):
 ```
 
 Prefer file links in final status messages. Inside the guide, use relative links between guide files and source paths when useful.
+
+## Self-Containment
+
+The guide must read front-to-back without forced jumps: each numbered file understandable given only the README, earlier files, and inline glosses. Real dependencies between subsystems are cyclic, so forward references are inevitable — the discipline is making every forward pointer optional. This is the habit that separates an expert-written guide from a generated one.
+
+The two-tier definitional rule:
+
+- **First substantive use** of any repo term whose home file comes later must carry, in the same sentence, an inline one-line gloss or an explicit forward link — ideally both. The gloss must be enough to follow the current sentence without jumping: "`AuthMiddleware` (the Gateway's global HTTP auth layer — see [16])".
+- **Full treatment** happens at the term's home file. A gloss never substitutes for the real explanation.
+- If a term pattern-matches an already-introduced family but is a different mechanism, say so at first use: a reader who has just memorized twenty-six `*Middleware` chain classes will misfile an HTTP-layer `AuthMiddleware` unless the first mention breaks the pattern explicitly.
+- A front-loaded map earns its keep: when file 01 or the README names every major subsystem with a one-line gloss, every later mention is the reader's second encounter, not the first.
+- Never point a reader to a glossary or appendix to understand a sentence: appendices are back-matter, and a coverage-matrix row is not an introduction.
+
+After drafting, run the self-containment pass: walk the numbered files in reading order, keep a cumulative ledger of introduced terms (seeded from the README and file 01), and wherever a term runs ahead of its home file, add the gloss or link at that spot. The validator emits the candidate ledger as `self-containment:` warnings — orphan concepts (used across files, defined nowhere) and forward gaps (used before home, no gloss, no link), with strong candidates marked. Fix each finding or disposition it in the `Self-containment review` section of the coverage appendix. The critic then judges what no script can: thin definitions (a defining-shaped sentence that names but does not explain), wrong-mental-model traps, and two-sense terms used before disambiguation.
+
+A legitimate early introduction that a heuristic still flags may be waived in the `Self-containment review` section, one line per waiver: ``Waiver: `term` — quoted gloss and the reason it is intentional.`` The validator rejects bare waivers (`n/a`, unquoted, or short); a waiver must name the term, quote the inline gloss, and state the reason.
 
 ## Topic Requirements
 
@@ -453,6 +471,7 @@ Include:
 
 - Published subsystem coverage matrix.
 - A `Structure-fit review` section: the documentation critic's verbatim verdict on the file plan and how each objection was resolved. The validator requires this section.
+- A `Self-containment review` section: the critic's verbatim verdict on reading-order quality — forward dependencies, thin definitions, wrong-mental-model traps, two-sense terms — plus the disposition of every validator `self-containment:` warning and any waivers (see "Self-Containment"). The validator requires this section and rejects bare waivers.
 - Topology matrix and persistence ledger, or links to their full sections.
 - Important diagram-edge evidence.
 - Known unknowns, source/test/doc contradictions, and intentionally omitted areas.
@@ -485,7 +504,12 @@ Use three diagrams when meaningful state exists, otherwise two. Use five source 
 
 Use `--require-head-match` for fresh generation and completed updates. When a guide is intentionally pinned to an older commit (see "Updating an Existing Guide"), omit that flag and record the divergence in the README instead.
 
-Independent of the flags, the validator always enforces: the three fixed files exist; the README has a `Structure rationale` section (in prose, not inside a code fence) that mentions every numbered file by name; `appendix-coverage-and-evidence.md` contains a `Structure-fit review` section; numbered files are not stubs; the plan is not dominated by generic template names; diagrams are deduplicated and non-trivial; and counted source snippets are real multi-line excerpts whose text appears in the linked source.
+Independent of the flags, the validator always enforces: the three fixed files exist; the README has a `Structure rationale` section (in prose, not inside a code fence) that mentions every numbered file by name; `appendix-coverage-and-evidence.md` contains `Structure-fit review` and `Self-containment review` sections (the latter non-stub, with substantive waivers only); numbered files are not stubs; the plan is not dominated by generic template names; diagrams are deduplicated and non-trivial; counted source snippets are real multi-line excerpts whose text appears in the linked source; line counts cited in appendix tables match the source within tolerance (any plausible path candidate may satisfy the claim); and every code-map row's path is actually mentioned in at least one guide file the row links to.
+
+The validator also emits advisory findings that do not gate but must be dispositioned before the guide is called done:
+
+- `self-containment:` warnings — the orphan/forward-gap candidate ledger for the self-containment pass and the critic (fix each, or record why it stands in the `Self-containment review` section). These are advisory by design: no token heuristic can tell a repo term of art from ordinary developer vocabulary, so the gate would false-positive on real guides — the critic makes the call.
+- CLI subcommands found in source but never mentioned in the guide (`--skip-cli-scan` disables the scan; detection is framework-specific and best-effort).
 
 Then complete the semantic checks below:
 

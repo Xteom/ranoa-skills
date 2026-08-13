@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import os
 import re
 import subprocess
 import sys
@@ -47,6 +48,51 @@ MIN_SNIPPET_CHARS = 80
 MIN_DIAGRAM_LINES = 3
 MIN_NUMBERED_WORDS = 50
 
+# ---- Self-containment (inward) and coverage-accuracy (outward) checks ----
+# Design: precision over recall. Deterministic checks gate only what they can
+# see reliably; judgment calls (thin glosses, wrong-model traps, two-sense
+# terms) belong to the critic, never to this script.
+ORPHAN_MIN_FILES = 3          # concept used in >= N numbered files with no definition
+FORWARD_GAP_MIN_DISTANCE = 2  # gate gaps of >= N files; distance 1 is a warning
+GLOSS_WINDOW_CHARS = 60       # how far after a use a parenthetical gloss may start
+COPULA_TOKEN_WINDOW = 4       # tokens between concept and is/are for definition shape
+MIN_WAIVER_SUBSTANCE = 40     # chars of justification beyond the quoted gloss
+LOC_TOLERANCE = 0.20          # relative error allowed on cited line counts
+LOC_MIN_CLAIM = 50            # ignore tiny cited counts; +/-20% of 14 is noise
+SC_SECTION_MIN_WORDS = 30
+IDENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_.-]{2,}")
+INLINE_CODE_RE = re.compile(r"`([^`\n]+)`")
+CAMEL_RE = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
+WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9]*")
+COPULAS = {"is", "are", "means", "was", "were"}
+STOPWORDS = {
+    "a", "all", "also", "an", "and", "any", "are", "as", "at", "be", "been",
+    "being", "both", "but", "by", "can", "cannot", "code", "could", "doc",
+    "docs", "does", "doing", "done", "each", "for", "from", "had", "has",
+    "have", "how", "in", "into", "is", "it", "its", "less", "may", "might",
+    "more", "most", "must", "no", "not", "notes", "of", "on", "only", "or",
+    "other", "over", "per", "shall", "should", "some", "such", "than", "that",
+    "the", "then", "these", "they", "this", "those", "to", "under", "versus",
+    "via", "vs", "was", "were", "what", "when", "where", "which", "why",
+    "will", "with", "would", "your",
+}
+WAIVER_RE = re.compile(r"^\s*(?:[-*]\s+)?waiver\s*:\s*`([^`]+)`(.*)$", re.I)
+LOC_CELL_RE = re.compile(r"^~?\s*(\d[\d,]*)\s*(k?)$", re.I)
+PATH_CELL_RE = re.compile(r"^[\w./-]+(?:/|\.[A-Za-z]{1,4})$")
+CODE_EXTS = {
+    ".c", ".cc", ".cpp", ".cs", ".go", ".h", ".java", ".js", ".jsx", ".kt",
+    ".mjs", ".php", ".py", ".rb", ".rs", ".swift", ".ts", ".tsx",
+}
+SCAN_EXCLUDE_DIRS = {
+    ".git", "node_modules", "dist", "build", "vendor", "target", ".venv",
+    "venv", "__pycache__", ".next", "coverage",
+}
+TEST_PATH_RE = re.compile(r"(?:^|[/._-])(?:tests?|specs?|__tests__)(?:[/._-]|$)", re.I)
+CLI_CMD_RES = (
+    re.compile(r"\.command\(\s*['\"]([a-z][a-z0-9-]{3,})(?:\s+[^'\"]*)?['\"]"),
+    re.compile(r"add_parser\(\s*['\"]([a-z][a-z0-9_-]{3,})['\"]"),
+)
+
 
 @dataclass(frozen=True)
 class Fence:
@@ -73,6 +119,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--require-metadata", action="store_true")
     parser.add_argument("--require-head-match", action="store_true")
     parser.add_argument("--check-upstream", action="store_true")
+    parser.add_argument("--loc-tolerance", type=float, default=LOC_TOLERANCE)
+    parser.add_argument("--skip-cli-scan", action="store_true")
     return parser.parse_args()
 
 
@@ -273,6 +321,495 @@ def snippet_has_source_link(document: Path, prose_lines: list[str], fence: Fence
     return False
 
 
+def stem(token: str) -> str:
+    """Suffix-strip so summary/summarization or process/processes co-match."""
+    token = token.lower()
+    for suffix in ("ization", "isation", "ation", "ings", "ing", "ies", "es", "s", "y"):
+        if not token.endswith(suffix) or len(token) - len(suffix) < 3:
+            continue
+        if suffix == "es" and not token[: -2].endswith(("s", "x", "z", "ch", "sh")):
+            continue  # templates -> template (via "s"), but processes -> process
+        return token[: -len(suffix)]
+    return token
+
+
+def split_ident(raw: str) -> list[str]:
+    """Split camelCase/snake_case/kebab-case into lowercase word tokens."""
+    parts: list[str] = []
+    for chunk in re.split(r"[\s_./:-]+", raw.strip()):
+        parts.extend(WORD_RE.findall(CAMEL_RE.sub(" ", chunk)))
+    return [part.lower() for part in parts if part]
+
+
+def line_stems(line: str) -> list[tuple[str, int]]:
+    """Stemmed tokens of a prose line with ORIGINAL-line character offsets.
+
+    camelCase words are split in place (offsets stay valid) rather than via a
+    substituted copy, so downstream slicing of the original line is exact.
+    """
+    tokens: list[tuple[str, int]] = []
+    for match in WORD_RE.finditer(line):
+        position = match.start()
+        for part in CAMEL_RE.split(match.group(0)):
+            tokens.append((stem(part), position))
+            position += len(part)
+    return tokens
+
+
+def code_spans(line: str) -> list[tuple[int, int]]:
+    return [match.span(1) for match in INLINE_CODE_RE.finditer(line)]
+
+
+def headings_of(prose: str) -> list[tuple[int, str]]:
+    found: list[tuple[int, str]] = []
+    for number, line in enumerate(prose.splitlines(), 1):
+        match = re.match(r"^#{1,6}\s+(.+?)\s*#*\s*$", line)
+        if match:
+            found.append((number, re.sub(r"[`*~]", "", match.group(1))))
+    return found
+
+
+def concept_grams(tokens: list[str], sizes: tuple[int, ...] = (2, 3)) -> set[tuple[str, ...]]:
+    """Contiguous stopword-free n-grams (stemmed) from a token list."""
+    grams: set[tuple[str, ...]] = set()
+    for size in sizes:
+        for index in range(len(tokens) - size + 1):
+            window = tokens[index : index + size]
+            if any(token in STOPWORDS or len(token) < 3 for token in window):
+                continue
+            grams.add(tuple(stem(token) for token in window))
+    return grams
+
+
+def numbered_sort_key(path: Path) -> tuple[int, str]:
+    match = NUMBERED_RE.match(path.stem)
+    number = re.match(r"\d+", match.group(1)).group(0) if match else "0"
+    return int(number), match.group(1) if match else ""
+
+
+@dataclass
+class Occurrence:
+    file: Path
+    order: int          # position in the numbered reading order; -1 for fixed files
+    line_no: int
+    is_home: bool       # heading, glossary-style table row, gloss, or copula definition
+    is_bare: bool       # plain use: no gloss, no same-line forward guide link
+    in_code: bool       # match sits inside an inline `code` span
+    surface: str        # the text as it actually appears on the line
+
+
+def classify_use(line: str, stems_line: list[tuple[str, int]], start_index: int,
+                 size: int, order: int,
+                 file_orders: dict[str, int]) -> tuple[bool, bool]:
+    """Return (is_home, is_bare) for one concept occurrence on one line."""
+    stripped = line.lstrip()
+    if stripped.startswith("#"):
+        return True, False
+    end_token = start_index + size - 1
+    end_char = stems_line[end_token][1] + 1
+    while end_char < len(line) and (line[end_char].isalnum() or line[end_char] in "_-"):
+        end_char += 1
+    tail = line[end_char:]
+    # Glossary-style table row: concept inside the first cell.
+    if stripped.startswith("|"):
+        first_cell_end = line.find("|", line.find("|") + 1)
+        if first_cell_end > 0 and stems_line[start_index][1] < first_cell_end:
+            return True, False
+    # Copula within a few tokens and no intervening punctuation: "Background
+    # bash processes are tracked" defines; "compaction, branch summary, bash,
+    # and Agent are signaled" is a list and does not.
+    copula_zone = re.split(r"[,;|/()]|\b(?:and|or)\b", line[end_char:], maxsplit=1)[0]
+    raw_following = [w.lower() for w in WORD_RE.findall(copula_zone)[:COPULA_TOKEN_WINDOW]]
+    if COPULAS & set(raw_following) or "refers" in raw_following or "means" in raw_following:
+        return True, False
+    # Parenthetical gloss or em-dash apposition right after the use.
+    window = tail[:GLOSS_WINDOW_CHARS]
+    paren = re.match(r"\s*[,;]?\s*\(([^)]{8,})\)", window)
+    dash = re.match(r"\s*(?:—|--)\s*\S", window)
+    colon = re.match(r"\s*:\s+\S", window) if stripped.startswith(("-", "*", "|")) else None
+    if paren or dash or colon:
+        return True, False
+    # Same-line link to a later guide file makes the pointer optional: not bare.
+    for destination in inline_links(line):
+        name = Path(destination.split("#")[0]).name
+        target_order = file_orders.get(name)
+        if target_order is not None and target_order > order >= 0:
+            return False, False
+    return False, True
+
+
+def self_containment_findings(
+    numbered: list[Path], prose_texts: dict[Path, str], fence_bodies: dict[Path, str],
+    all_docs: list[Path], waivers: dict[tuple[str, ...], str],
+) -> tuple[list[str], list[str], int]:
+    """Cumulative-ledger inward pass: orphans and strict forward gaps."""
+    ordered = sorted(numbered, key=numbered_sort_key)
+    order_of = {doc: index for index, doc in enumerate(ordered)}
+    file_orders = {doc.name: index for index, doc in enumerate(ordered)}
+
+    # Concept candidates: heading n-grams (home = that file) + multi-word
+    # code identifiers seen anywhere in the guide (inline spans and fences).
+    display: dict[tuple[str, ...], str] = {}
+    heading_home: dict[tuple[str, ...], int] = {}
+    for doc in ordered:
+        for _, title in headings_of(prose_texts[doc]):
+            for gram in concept_grams(split_ident(title)):
+                display.setdefault(gram, " ".join(gram))
+                order = order_of[doc]
+                if gram not in heading_home or order < heading_home[gram]:
+                    heading_home[gram] = order
+    # Identifier concepts come from code contexts only (inline spans and fenced
+    # snippets), never from plain prose: hyphenated prose compounds are not
+    # identifiers and would flood the ledger with false orphans.
+    ident_concepts: set[tuple[str, ...]] = set()
+    code_evidence: set[tuple[str, ...]] = set()
+    for doc in all_docs:
+        for source in (
+            INLINE_CODE_RE.findall(prose_texts[doc]),
+            IDENT_RE.findall(fence_bodies.get(doc, "")),
+        ):
+            for raw in source:
+                tokens = split_ident(raw)
+                if not tokens or any(token in STOPWORDS for token in tokens):
+                    continue
+                stems = tuple(stem(token) for token in tokens)
+                # Sub-grams count as code-form evidence (BranchSummaryEntry
+                # vouches for "branch summary") without becoming concepts.
+                for size in (2, 3):
+                    for index in range(len(stems) - size + 1):
+                        code_evidence.add(stems[index : index + size])
+                if not 2 <= len(tokens) <= 4 or max(len(t) for t in tokens) < 3:
+                    continue
+                ident_concepts.add(stems)
+                display.setdefault(stems, raw)
+    concepts = set(heading_home) | ident_concepts
+
+    # Discovery pre-pass: a plain-prose n-gram sitting at a definition-shaped
+    # position (copula or parenthetical gloss) is a concept even when it never
+    # appears as a heading or an identifier — "Background bash processes are
+    # tracked..." anchors "background bash". Definition sites seed the ledger;
+    # earlier bare uses then flag naturally.
+    for doc in ordered:
+        for line in prose_texts[doc].splitlines():
+            if line.lstrip().startswith(("#", "|")):
+                continue  # headings and tables have their own home rules
+            stems_line = line_stems(line)
+            spans = code_spans(line)
+            # Definition style is line-initial ("Background bash processes are
+            # tracked..."): only the line's opening n-gram can seed a concept.
+            # Mid-sentence copulas describe; they do not define.
+            for size in (2, 3):
+                if len(stems_line) < size:
+                    continue
+                window = stems_line[:size]
+                if any(token in STOPWORDS or len(token) < 3 for token, _ in window):
+                    continue
+                if any(start <= window[0][1] < end for start, end in spans):
+                    continue
+                is_home, _ = classify_use(
+                    line, stems_line, 0, size, order_of[doc], file_orders
+                )
+                if is_home:
+                    gram = tuple(token for token, _ in window)
+                    concepts.add(gram)
+                    display.setdefault(gram, " ".join(gram))
+
+    # Index prose lines once; then match concepts as contiguous stem runs.
+    by_first_stem: dict[str, set[tuple[str, ...]]] = {}
+    for gram in concepts:
+        by_first_stem.setdefault(gram[0], set()).add(gram)
+    occurrences: dict[tuple[str, ...], list[Occurrence]] = {}
+    for doc in all_docs:
+        order = order_of.get(doc, -1)
+        for line_no, line in enumerate(prose_texts[doc].splitlines(), 1):
+            stems_line = line_stems(line)
+            spans = code_spans(line)
+            for index, (token, offset) in enumerate(stems_line):
+                for gram in by_first_stem.get(token, ()):
+                    size = len(gram)
+                    if tuple(t for t, _ in stems_line[index : index + size]) != gram:
+                        continue
+                    is_home, is_bare = classify_use(
+                        line, stems_line, index, size, order, file_orders
+                    )
+                    in_code = any(start <= offset < end for start, end in spans)
+                    last = stems_line[index + size - 1][1]
+                    tail_end = last
+                    while tail_end < len(line) and (
+                        line[tail_end].isalnum() or line[tail_end] in "_-"
+                    ):
+                        tail_end += 1
+                    occurrences.setdefault(gram, []).append(
+                        Occurrence(doc, order, line_no, is_home, is_bare,
+                                   in_code, line[offset:tail_end])
+                    )
+
+    errors: list[str] = []
+    warnings: list[str] = []
+    for gram, uses in sorted(occurrences.items(), key=lambda item: display[item[0]].lower()):
+        if gram in waivers:
+            continue
+        plain = [use for use in uses if not use.in_code]
+        name = next((use.surface for use in plain), display[gram])
+        home_orders = [use.order for use in uses if use.is_home and use.order >= 0]
+        # Only the README front-loads: a first-cell row in a coverage appendix
+        # is back-matter and cannot introduce a term to a linear reader.
+        fixed_home = any(
+            use.is_home and use.order < 0 and use.file.name.lower() == "readme.md"
+            for use in uses
+        )
+        if gram in heading_home:
+            home_orders.append(heading_home[gram])
+        # Only plain-prose usage marks a term the reader must understand;
+        # backtick-only symbols are code references, not concepts.
+        plain_files = {
+            use.file.name for use in plain
+            if not use.is_home and use.order >= 0
+        }
+        if not home_orders and not fixed_home:
+            if gram in ident_concepts and len(plain_files) >= ORPHAN_MIN_FILES:
+                # Advisory by design: no token heuristic can tell a repo term of
+                # art from ordinary developer vocabulary ("base URL"). The
+                # critic and the authoring pass disposition this ledger; the
+                # deterministic gate would false-positive on real guides.
+                warnings.append(
+                    f"self-containment: orphan concept `{name}`: used in plain "
+                    f"prose in {len(plain_files)} files "
+                    f"({', '.join(sorted(plain_files))}) but never defined, "
+                    "glossed, or given a home heading anywhere in the guide"
+                )
+            continue
+        if fixed_home:
+            continue  # defined in README or an appendix: introduced up front
+        home = min(home_orders)
+        bare = [
+            use for use in plain
+            if use.is_bare and 0 < use.order < home
+        ]
+        if not bare:
+            continue
+        first = min(bare, key=lambda use: (use.order, use.line_no))
+        distance = home - first.order
+        strong = gram in ident_concepts or gram in code_evidence
+        priority = "strong candidate" if strong and distance >= FORWARD_GAP_MIN_DISTANCE \
+            else "weak candidate"
+        warnings.append(
+            f"self-containment: forward gap ({priority}): `{name}` is used in "
+            f"{first.file.name}:{first.line_no} with no inline gloss or forward "
+            f"link, but its home is {distance} file(s) later "
+            f"({sorted(numbered, key=numbered_sort_key)[home].name}); add a same-"
+            "sentence gloss or link at first use, or disposition it in the "
+            "Self-containment review"
+        )
+    return errors, warnings, len(concepts)
+
+
+def parse_waivers(section: str) -> tuple[dict[tuple[str, ...], str], list[str]]:
+    """Waivers must name the term, quote the gloss, and justify — or be rejected."""
+    waivers: dict[tuple[str, ...], str] = {}
+    errors: list[str] = []
+    for line in section.splitlines():
+        match = WAIVER_RE.match(line)
+        if not match:
+            continue
+        term, remainder = match.group(1), match.group(2).strip()
+        quoted = re.search(r"[\"“][^\"”]{8,}[\"”]", remainder)
+        bare = re.fullmatch(r"[-\s]*(?:n/?a|none|todo|tbd)?[-\s.]*", remainder, re.I)
+        if bare or not quoted or len(remainder) < MIN_WAIVER_SUBSTANCE:
+            errors.append(
+                f"waiver for `{term}` lacks substance: quote the inline gloss and "
+                "state the reason (bare or unquoted waivers are rejected)"
+            )
+            continue
+        waivers[tuple(stem(token) for token in split_ident(term))] = term
+    return waivers, errors
+
+
+def section_text(prose: str, title: str) -> str | None:
+    lines = prose.splitlines()
+    for index, line in enumerate(lines):
+        heading = re.match(rf"^(#{{1,6}})\s+.*{title}", line, re.I)
+        if not heading:
+            continue
+        level = len(heading.group(1))
+        body = [line]
+        for next_line in lines[index + 1 :]:
+            next_heading = re.match(r"^(#{1,6})\s", next_line)
+            if next_heading and len(next_heading.group(1)) <= level:
+                break
+            body.append(next_line)
+        return "\n".join(body)
+    return None
+
+
+def count_lines(path: Path) -> tuple[int, int, int]:
+    """(all files, code files, non-test code files) line counts for a path."""
+    files = [path] if path.is_file() else [
+        candidate for candidate in path.rglob("*")
+        if candidate.is_file() and not any(part in SCAN_EXCLUDE_DIRS for part in candidate.parts)
+    ]
+    totals = [0, 0, 0]
+    for candidate in files:
+        try:
+            lines = sum(1 for _ in candidate.open(encoding="utf-8", errors="ignore"))
+        except OSError:
+            continue
+        totals[0] += lines
+        if candidate.suffix.lower() in CODE_EXTS:
+            totals[1] += lines
+            if not TEST_PATH_RE.search(str(candidate)):
+                totals[2] += lines
+    return totals[0], totals[1], totals[2]
+
+
+def resolve_repo_candidates(repo: Path, raw: str) -> list[Path]:
+    """All plausible targets for a code-map path (code maps abbreviate:
+    `deploy/` may mean `src/deploy/`). LOC passes if ANY candidate matches."""
+    cleaned = raw.strip().strip("`").rstrip("/")
+    if not cleaned:
+        return []
+    candidates: list[Path] = []
+    direct = repo / cleaned
+    if direct.exists():
+        candidates.append(direct)
+    basename = cleaned.rsplit("/", 1)[-1]
+    for found in repo.rglob(basename):
+        if any(part in SCAN_EXCLUDE_DIRS for part in found.parts):
+            continue
+        if found not in candidates:
+            candidates.append(found)
+        if len(candidates) >= 8:
+            break
+    return candidates
+
+
+def outward_findings(
+    repo: Path, guide: Path, texts: dict[Path, str], loc_tolerance: float,
+) -> tuple[list[str], list[str]]:
+    """Coverage-accuracy nit-catchers: cited LOC sanity and pointer accuracy."""
+    errors: list[str] = []
+    warnings: list[str] = []
+    for appendix_name in REQUIRED_FILES:
+        appendix = guide / appendix_name
+        if appendix not in texts:
+            continue
+        for line in texts[appendix].splitlines():
+            stripped = line.strip()
+            if not stripped.startswith("|") or set(stripped) <= {"|", "-", " ", ":"}:
+                continue
+            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+            # Paths come from the FIRST path-bearing cell only: later cells are
+            # descriptions that may name helper files without mapping them.
+            paths: list[str] = []
+            for cell in cells:
+                found = [
+                    token for token in INLINE_CODE_RE.findall(cell)
+                    if PATH_CELL_RE.match(token)
+                ]
+                if found:
+                    paths = found
+                    break
+            links = [
+                destination for cell in cells for destination in inline_links(cell)
+                if destination.split("#")[0].endswith(".md")
+            ]
+            if not paths:
+                continue
+            loc_cells = [match for cell in cells if (match := LOC_CELL_RE.match(cell))]
+            if len(paths) == 1 and len(loc_cells) == 1:
+                claimed = int(loc_cells[0].group(1).replace(",", ""))
+                if loc_cells[0].group(2):
+                    claimed *= 1000
+                candidates = resolve_repo_candidates(repo, paths[0])
+                if claimed >= LOC_MIN_CLAIM and candidates:
+                    slack = loc_tolerance * (2 if loc_cells[0].group(2) else 1)
+                    all_counts = [count_lines(candidate) for candidate in candidates]
+                    if not any(
+                        count and abs(count - claimed) <= slack * claimed
+                        for counts in all_counts for count in counts
+                    ):
+                        best = all_counts[0]
+                        errors.append(
+                            f"{appendix_name}: cited line count {loc_cells[0].group(0)} "
+                            f"for `{paths[0]}` does not match source "
+                            f"(all={best[0]}, code={best[1]}, non-test code={best[2]}; "
+                            f"{len(candidates)} candidate path(s) tried)"
+                        )
+            if appendix_name != "appendix-code-map.md":
+                continue  # pointer accuracy applies to the code map only
+            for raw_path in paths:
+                target_names = {
+                    Path(destination.split("#")[0]).name for destination in links
+                }
+                targets = [guide / name for name in sorted(target_names)
+                           if (guide / name) in texts]
+                if not targets:
+                    continue
+                token = Path(raw_path.rstrip("/")).name
+                token = token.rsplit(".", 1)[0] if "." in token else token
+                if len(token) < 3:
+                    continue
+                pattern = re.compile(rf"\b{re.escape(token)}", re.I)
+                stem_gram = tuple(stem(part) for part in split_ident(token))
+                compressed_token = re.sub(r"[\s_-]", "", token.lower())
+                mentioned = False
+                for target in targets:
+                    if pattern.search(texts[target]):
+                        mentioned = True
+                        break
+                    # "ratelimit/" is mentioned as "rate limiting": compare with
+                    # separators stripped on both sides.
+                    compressed_text = re.sub(r"[\s_-]", "", texts[target].lower())
+                    if compressed_token and compressed_token in compressed_text:
+                        mentioned = True
+                        break
+                    target_stems = [
+                        token_stem for token_stem, _ in line_stems(texts[target])
+                    ]
+                    for index in range(len(target_stems) - len(stem_gram) + 1):
+                        if tuple(target_stems[index : index + len(stem_gram)]) == stem_gram:
+                            mentioned = True
+                            break
+                    if mentioned:
+                        break
+                if not mentioned:
+                    errors.append(
+                        f"{appendix_name}: maps `{raw_path}` to "
+                        f"{', '.join(sorted(target_names))} but no linked file "
+                        "mentions it; repoint the row or cover the subsystem"
+                    )
+    return errors, warnings
+
+
+def cli_completeness_warnings(repo: Path, guide_text: str) -> list[str]:
+    """Advisory: CLI subcommands in source that the guide never names."""
+    names: set[str] = set()
+    for root, dirs, files in os.walk(repo):
+        dirs[:] = [d for d in dirs if d not in SCAN_EXCLUDE_DIRS]
+        for file_name in files:
+            path = Path(root) / file_name
+            if path.suffix.lower() not in CODE_EXTS:
+                continue
+            try:
+                if path.stat().st_size > 2_000_000:
+                    continue
+                content = path.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            for pattern in CLI_CMD_RES:
+                names.update(match.group(1) for match in pattern.finditer(content))
+    missing = sorted(
+        name for name in names
+        if not re.search(rf"\b{re.escape(name)}\b", guide_text)
+    )
+    if missing:
+        return [
+            "CLI subcommands found in source but never mentioned in the guide "
+            f"(advisory): {', '.join(missing[:15])}"
+        ]
+    return []
+
+
 def main() -> int:
     args = parse_args()
     repo, guide = args.repo.resolve(), args.guide.resolve()
@@ -308,6 +845,7 @@ def main() -> int:
 
     texts: dict[Path, str] = {}
     prose_texts: dict[Path, str] = {}
+    fence_bodies: dict[Path, str] = {}
     diagrams = snippets = local_link_count = 0
     mermaid_seen: set[str] = set()
     sequence_found = False
@@ -316,6 +854,7 @@ def main() -> int:
         text = document.read_text(encoding="utf-8")
         prose, fences, balanced = split_fences(text)
         texts[document], prose_texts[document] = text, prose
+        fence_bodies[document] = "\n".join(fence.body for fence in fences)
         if not balanced:
             errors.append(f"{document.name}: unbalanced fenced code block")
         placeholders = sorted(set(PLACEHOLDER_RE.findall(prose)))
@@ -438,12 +977,44 @@ def main() -> int:
                 )
 
     coverage = guide / "appendix-coverage-and-evidence.md"
+    waivers: dict[tuple[str, ...], str] = {}
     if coverage.exists():
         coverage_prose = prose_texts.get(coverage, "")
         if not re.search(r"^#{1,6}\s+Structure-fit review\b", coverage_prose, re.I | re.M):
             errors.append(
                 "appendix-coverage-and-evidence.md has no `Structure-fit review` section"
             )
+        sc_section = section_text(coverage_prose, "self-containment review")
+        if sc_section is None:
+            errors.append(
+                "appendix-coverage-and-evidence.md has no `Self-containment review` "
+                "section (critic's inward verdict plus any waivers)"
+            )
+        else:
+            if len(sc_section.split()) < SC_SECTION_MIN_WORDS:
+                errors.append(
+                    "`Self-containment review` section is a stub; record the critic's "
+                    "verdict on forward dependencies, thin definitions, and traps"
+                )
+            waivers, waiver_errors = parse_waivers(sc_section)
+            errors.extend(waiver_errors)
+
+    concept_count = 0
+    if numbered:
+        inward_errors, inward_warnings, concept_count = self_containment_findings(
+            numbered, prose_texts, fence_bodies, markdown, waivers
+        )
+        errors.extend(inward_errors)
+        warnings.extend(inward_warnings)
+    outward_errors, outward_warnings = outward_findings(
+        repo, guide, texts, args.loc_tolerance
+    )
+    errors.extend(outward_errors)
+    warnings.extend(outward_warnings)
+    if not args.skip_cli_scan:
+        warnings.extend(
+            cli_completeness_warnings(repo, "\n".join(texts.values()))
+        )
 
     if args.check_upstream:
         upstream = git(repo, "rev-parse", "--abbrev-ref", "@{upstream}")
@@ -473,16 +1044,20 @@ def main() -> int:
                         "remote refs may be stale"
                     )
 
-    return report(errors, warnings, len(markdown), local_link_count, diagrams, snippets)
+    return report(
+        errors, warnings, len(markdown), local_link_count, diagrams, snippets,
+        concept_count,
+    )
 
 
 def report(
     errors: list[str], warnings: list[str], markdown_count: int,
     link_count: int, diagram_count: int, snippet_count: int,
+    concept_count: int = 0,
 ) -> int:
     print(
         f"files={markdown_count} local_links={link_count} diagrams={diagram_count} "
-        f"source_snippets={snippet_count}"
+        f"source_snippets={snippet_count} tracked_concepts={concept_count}"
     )
     for warning in warnings:
         print(f"WARNING: {warning}")

@@ -62,13 +62,17 @@ The appendix mechanism works; do not rebuild it. Add cheap cross-checks against 
 **Advisory (ledger):**
 - **CLI-command completeness:** subcommands discoverable in source that never appear in the guide. (Catches `dev-ci`.) Advisory because reliable subcommand enumeration is framework-specific; a hard gate would false-positive across ecosystems.
 
-## 4. Enforcement — tiered (confirmed shape)
+## 4. Enforcement — tiered (amended after Phase A)
+
+**Phase A amendment (2026-08-13):** the original shape gated orphans and strict forward-gaps deterministically. Running the checks against the four real guides falsified that: concept-level heuristics false-positive at ~90% on real prose ("base URL", "package.json", "tool execution" flag identically to `thinkingLevel` — telling a repo term of art from ordinary developer vocabulary is semantics, not tokenization), while the outward checks (LOC, pointer) and structural inward checks proved hand-verifiably precise. The gate/ledger split therefore follows check precision, exactly as §0's calibration predicted, with the line drawn one tier lower than first guessed:
 
 | Tier | Findings | Action |
 |---|---|---|
-| **Gate** (`validate_guide.py` exit ≠ 0) | orphans; strict forward-gaps; LOC mismatch; pointer mis-route | Block until fixed or substantively waived |
-| **Ledger** (appendix, advisory) | thin definitions; wrong-model traps; two-sense terms; prose-term gaps; CLI completeness | Critic records verbatim; author resolves |
-| **Waiver** | any gated finding with a legitimate exception | Must name the term, quote the inline gloss, and state the reason. Validator rejects bare/empty waivers (`n/a`, blank, token-only) |
+| **Gate** (`validate_guide.py` exit ≠ 0) | `Self-containment review` section missing or stub; bare waivers; LOC mismatch; pointer mis-route | Block until fixed or (LOC/pointer) corrected |
+| **Ledger** (validator `self-containment:` warnings + critic findings, advisory) | orphan candidates; forward-gap candidates (strong/weak tiered); thin definitions; wrong-model traps; two-sense terms; CLI completeness | Every warning fixed or dispositioned in the `Self-containment review` section; critic triages strong candidates first |
+| **Waiver** | any flagged term with a legitimate early introduction | Must name the term, quote the inline gloss, and state the reason. Validator rejects bare/empty waivers (`n/a`, blank, token-only) |
+
+Phase A acceptance re-verified under the amended shape: all labeled defects flagged (pi `thinkingLevel` strong, `branch summary` strong, `background bash` weak; qm `processes/~480` LOC gate, `onboarding/` pointer gate), zero hand-verified-false gate errors on any guide, and the checks surfaced five NEW real nits the audits missed (qm: `skills/~1,527` vs 1,904 LOC, `templates/`, `aws-lease.ts`, `egress-proxy-pub/` pointer mis-routes; deer-flow: `reflection/` pointer mis-route).
 
 ## 5. Where findings live
 

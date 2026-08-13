@@ -102,9 +102,12 @@ class ValidateGuideTest(unittest.TestCase):
         for name in names:
             (self.guide / name).write_text(f"# {name}\n\n{body}\n", encoding="utf-8")
 
-    def _write_appendices(self, with_fit_section: bool = True) -> None:
+    def _write_appendices(self, with_fit_section: bool = True,
+                          with_sc_section: bool = True,
+                          code_map_extra: str = "",
+                          sc_extra: str = "") -> None:
         (self.guide / "appendix-code-map.md").write_text(
-            f"# Code map\n\n{FILLER}\n", encoding="utf-8"
+            f"# Code map\n\n{FILLER}\n{code_map_extra}\n", encoding="utf-8"
         )
         fit = (
             "\n## Structure-fit review\n\n"
@@ -112,8 +115,17 @@ class ValidateGuideTest(unittest.TestCase):
             if with_fit_section
             else ""
         )
+        sc = (
+            "\n## Self-containment review\n\n"
+            "The critic walked the numbered files in reading order and confirmed "
+            "each file is understandable given only the README and earlier files; "
+            "no thin definitions, wrong-model traps, or two-sense terms were found.\n"
+            f"{sc_extra}\n"
+            if with_sc_section
+            else ""
+        )
         (self.guide / "appendix-coverage-and-evidence.md").write_text(
-            f"# Coverage and evidence\n{fit}\n{FILLER}\n", encoding="utf-8"
+            f"# Coverage and evidence\n{fit}{sc}\n{FILLER}\n", encoding="utf-8"
         )
 
     def _write_readme(self, names: list[str], rationale_names: list[str] | None = None,
@@ -236,6 +248,11 @@ class ValidateGuideTest(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Structure-fit review", result.stdout)
 
+        self._write_appendices(with_sc_section=False)
+        result = self._run()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Self-containment review", result.stdout)
+
     def test_fake_evidence_and_plain_filenames_do_not_pass(self) -> None:
         self._write_numbered(NAMES, body="Stub.")
         self._write_appendices()
@@ -254,6 +271,149 @@ class ValidateGuideTest(unittest.TestCase):
         self.assertIn("non-empty Mermaid", result.stdout)
         self.assertIn("source snippets", result.stdout)
         self.assertIn("looks like a stub", result.stdout)
+
+    def _write_orphan_files(self, define: bool = False) -> None:
+        """`dataFlux` used across three files; defined only when asked."""
+        definition = (
+            "| `dataFlux` | The per-request effort knob shared by every adapter. |\n"
+            if define
+            else ""
+        )
+        (self.guide / NAMES[0]).write_text(
+            f"# Alpha engine\n\n| Term | Meaning |\n| --- | --- |\n{definition}\n"
+            f"{FILLER}\n```python\nconfig = {{'dataFlux': 3}}\n```\n",
+            encoding="utf-8",
+        )
+        (self.guide / NAMES[1]).write_text(
+            f"# Beta store\n\nWrites honor the data flux ceiling.\n\n{FILLER}\n",
+            encoding="utf-8",
+        )
+        (self.guide / NAMES[2]).write_text(
+            f"# Gamma api\n\nResponses carry per-data-flux borders.\n\n{FILLER}\n",
+            encoding="utf-8",
+        )
+        (self.guide / NAMES[3]).write_text(
+            f"# Delta cli\n\nThe cli prints the data flux value.\n\n{FILLER}\n",
+            encoding="utf-8",
+        )
+
+    def test_orphan_concept_flagged_as_advisory(self) -> None:
+        self._write_orphan_files(define=False)
+        self._write_appendices()
+        self._write_readme(NAMES)
+        result = self._run()
+        # Concept-level inward findings are advisory (critic input), not gates.
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("orphan concept", result.stdout)
+        self.assertIn("data flux", result.stdout)
+
+    def test_orphan_suppressed_by_glossary_row(self) -> None:
+        self._write_orphan_files(define=True)
+        self._write_appendices()
+        self._write_readme(NAMES)
+        result = self._run()
+        self.assertNotIn("orphan concept", result.stdout)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def _write_gap_files(self, first_use: str) -> None:
+        """Home heading for 'delta batching' lives in file 04; use is in 02."""
+        self._write_numbered([NAMES[0], NAMES[2]])
+        (self.guide / NAMES[1]).write_text(
+            f"# Beta store\n\n{first_use}\n\n{FILLER}\n", encoding="utf-8"
+        )
+        (self.guide / NAMES[3]).write_text(
+            f"# Delta cli\n\n## Delta Batching\n\nDelta batching groups writes into "
+            f"one flush and is the cli's core loop.\n\n{FILLER}\n",
+            encoding="utf-8",
+        )
+
+    def test_forward_gap_flagged_as_advisory(self) -> None:
+        self._write_gap_files("The store relies on delta batching for flushes.")
+        self._write_appendices()
+        self._write_readme(NAMES)
+        result = self._run()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("forward gap", result.stdout)
+        self.assertIn(NAMES[1], result.stdout)
+
+    def test_forward_gap_spared_by_gloss_and_by_link(self) -> None:
+        self._write_gap_files(
+            "The store relies on delta batching (grouping writes into one flush)."
+        )
+        self._write_appendices()
+        self._write_readme(NAMES)
+        result = self._run()
+        self.assertNotIn("forward gap", result.stdout)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+        self._write_gap_files(
+            f"The store relies on delta batching ([04]({NAMES[3]}))."
+        )
+        result = self._run()
+        self.assertNotIn("forward gap", result.stdout)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_waiver_suppresses_gap_but_bare_waiver_rejected(self) -> None:
+        self._write_gap_files("The store relies on delta batching for flushes.")
+        self._write_appendices(sc_extra=(
+            '- Waiver: `delta batching` — glossed upstream as "grouping writes '
+            'into one flush"; introduced early on purpose because the store '
+            "chapter motivates the batching design.\n"
+        ))
+        self._write_readme(NAMES)
+        result = self._run()
+        self.assertNotIn("forward gap", result.stdout)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+        self._write_appendices(sc_extra="- Waiver: `delta batching` — n/a\n")
+        result = self._run()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("lacks substance", result.stdout)
+
+    def test_loc_mismatch_flagged_and_accurate_passes(self) -> None:
+        module = self.repo / "engine.py"
+        module.write_text("\n".join(f"x{i} = {i}" for i in range(120)) + "\n",
+                          encoding="utf-8")
+        self._write_numbered(NAMES)
+        (self.guide / NAMES[0]).write_text(
+            f"# Alpha engine\n\nThe engine module drives it.\n\n{FILLER}\n",
+            encoding="utf-8",
+        )
+        row = "| Path | Lines | Files |\n| --- | --- | --- |\n"
+        self._write_appendices(code_map_extra=(
+            row + f"| `engine.py` | 400 | [01]({NAMES[0]}) |\n"
+        ))
+        self._write_readme(NAMES)
+        result = self._run()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("cited line count", result.stdout)
+
+        self._write_appendices(code_map_extra=(
+            row + f"| `engine.py` | 120 | [01]({NAMES[0]}) |\n"
+        ))
+        result = self._run()
+        self.assertNotIn("cited line count", result.stdout)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_pointer_misroute_flagged(self) -> None:
+        self._write_numbered(NAMES)
+        row = "| Path | Lines | Files |\n| --- | --- | --- |\n"
+        self._write_appendices(code_map_extra=(
+            row + f"| `quorum/` | — | [02]({NAMES[1]}) |\n"
+        ))
+        self._write_readme(NAMES)
+        result = self._run()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("quorum", result.stdout)
+        self.assertIn("no linked file mentions it", result.stdout)
+
+        (self.guide / NAMES[1]).write_text(
+            f"# Beta store\n\nThe quorum layer arbitrates writes.\n\n{FILLER}\n",
+            encoding="utf-8",
+        )
+        result = self._run()
+        self.assertNotIn("no linked file mentions it", result.stdout)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
 if __name__ == "__main__":
