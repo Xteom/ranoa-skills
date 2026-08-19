@@ -222,6 +222,14 @@ context — the direct test of invariant 2. Verified on disk:
 the same repo must detect the dangling session, reconstruct, and take SG-1
 through merge/evidence/`done`.
 
+Live observation while GREEN-2b runs: GREEN-2's orphaned gate-2 round-3
+adversary outlived its parent and delivered its verdict out-of-band (all
+round-2 findings resolved; container suite independently re-run, 11 passed;
+one new minor: committed `__pycache__` bytecode, no `.gitignore`). The
+verdict never reached the repo — empirical confirmation of why review slots
+must be filled the moment a gate completes, and why fresh re-review (not
+inherited claims) is the recovery rule.
+
 ### GREEN-4 — dispatch edge: foreign docs/PLAN.md, unattended, 2:10am — PASS
 
 Foreign file = a human's 2024 roadmap draft occupying `docs/PLAN.md`.
