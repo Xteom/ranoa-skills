@@ -131,6 +131,18 @@ persisted*, not the asking behavior itself).
   construction if TEST/CLEAN change the code) → fixed with the invalidation
   rule: the diff-review slot must reference the commit that merges.
 
+### Codex micro-rounds (post-round-4 additions)
+
+- Negotiation channel v1: REWORK (unbounded update scope; verdict bypass via
+  "implement as planned"; agreement skipping gate 1) → re-bounded to
+  implementation-approach only, no-bypass fallback, fresh gate-1 review of
+  the agreed artifact.
+- Final convergence round: **APPROVE-WITH-FIXES** — negotiation closures
+  verified; one HIGH in the /goal example (condition didn't cover all
+  legitimate session endings and could outlive the morning report) → fixed
+  by targeting the session-terminal state (closed session record, in-Plan or
+  out-of-band) and recording the parked-revisit as a session-record line.
+
 ### GREEN-1 — bootstrap with skill + pre-recorded answer sheet — PASS
 
 Ran against the skill while rounds 3–4 fixes were landing on disk; the agent

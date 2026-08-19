@@ -23,7 +23,8 @@ first and follow *it*, using this file for the mechanics it doesn't restate.
    revisited subgoal gets a new fresh subagent, never the old context).
 6. Repeat until no executable subgoal remains (or the focus says stop). Then
    revisit parked subgoals once with a fresh subagent — fresh eyes on a
-   parked problem beat attempt 15 from the same context.
+   parked problem beat attempt 15 from the same context. Record the revisit
+   as a line in this session's record, so it's attributable to this session.
 7. Write the morning report, closing the session record.
 
 ## Driving a whole night with /goal
@@ -35,13 +36,19 @@ keeps working until the night is actually done. The condition must be a
 at 4,000 characters — and a backlog copy would rot by the second subgoal):
 
 ```
-/goal docs/PLAN.md shows no executable subgoal left (every subgoal done or
-blocked with its required fields), parked subgoals were revisited once, and
-this session's morning report closes its session record
+/goal this session has terminated per its Plan's ruleset: its session record
+is closed by its morning report (or an out-of-band report exists, if a
+Plan-integrity blocker forbade Plan writes), and no work the session's focus
+and ruleset still allow remains executable
 ```
 
-Keep any condition you write or recommend well under the 4,000-character cap;
-if it doesn't fit comfortably, it's restating state that belongs in the Plan.
+The condition targets the session-terminal state — the closed session record —
+not individual obligations: focus-stops, blocker terminations, and
+pending-behind-blocked subgoals are all legitimate endings the report
+captures, and nothing may continue past the morning report (the run's last
+write). Keep any condition you write or recommend well under the
+4,000-character cap; if it doesn't fit comfortably, it's restating state that
+belongs in the Plan.
 
 ## Fresh context is mechanism, not metaphor
 
