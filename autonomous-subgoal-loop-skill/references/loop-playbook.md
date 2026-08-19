@@ -70,7 +70,10 @@ sequential fresh-eyes pass — re-read only from files, not conversation memory
 4. ADVERSARY  ADVERSARIAL GATE 2: fresh reviewer attacks the diff — logic,
               edge cases, consistency with spec and conventions, hardcoding.
               Findings are fixed before advancing. Record verdict + reviewed
-              branch/commit in the subgoal's diff-review slot.
+              commit in the subgoal's diff-review slot. If any later step
+              changes the code (test fixes, cleanup), the review is stale:
+              repeat gate 2 on the new diff — the diff-review slot must
+              reference the commit that actually merges.
 5. TEST       Run the tests fixed at PLAN (plus the suite) in the container.
               Touched something old? Re-test it. Modifying an existing test
               requires a justification in the decision log — a test is
