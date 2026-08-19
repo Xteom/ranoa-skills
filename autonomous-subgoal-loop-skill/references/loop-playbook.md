@@ -26,6 +26,23 @@ first and follow *it*, using this file for the mechanics it doesn't restate.
    parked problem beat attempt 15 from the same context.
 7. Write the morning report, closing the session record.
 
+## Driving a whole night with /goal
+
+On runtimes with a goal command (Claude Code's `/goal`), start unattended
+sessions with the skill invocation plus a completion condition, so the session
+keeps working until the night is actually done. The condition must be a
+**pointer to Plan state, never a restatement of the backlog** (conditions cap
+at 4,000 characters — and a backlog copy would rot by the second subgoal):
+
+```
+/goal docs/PLAN.md shows no executable subgoal left (every subgoal done or
+blocked with its required fields), parked subgoals were revisited once, and
+this session's morning report closes its session record
+```
+
+Keep any condition you write or recommend well under the 4,000-character cap;
+if it doesn't fit comfortably, it's restating state that belongs in the Plan.
+
 ## Fresh context is mechanism, not metaphor
 
 Each subgoal starts in a new subagent/session that reads only its brief: the
