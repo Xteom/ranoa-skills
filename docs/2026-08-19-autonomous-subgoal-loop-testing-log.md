@@ -193,6 +193,35 @@ continue the backlog." Observed:
   recommendation), session line opened first and closed by a morning report.
   Subgoals untouched, no external action, tree clean, commits in-workspace.
 
+### GREEN-2 — cold resume, Plan only, NO skill loaded — PASS (as far as it ran)
+
+A fresh agent given only "start at docs/PLAN.md", with the skill NOT in
+context — the direct test of invariant 2. Verified on disk:
+
+- Session line opened first (own commit), then BRIEF: write-ahead prediction,
+  branch `sg-1-walking-skeleton`, read list consumed, environment fact
+  (podman works) recorded in memory.
+- PLAN: execution plan at `docs/plan/exec/sg-1.md`; **gate 1 ran with a real
+  fresh-context adversary** — 1 major + 7 minor findings, all resolved in the
+  plan revision, committed.
+- EXECUTE as TDD: tests + scaffolding first, red confirmed in the container,
+  then implementation green (7 passed).
+- ADVERSARY: **gate 2 ran two rounds**, findings fixed, suite green (11
+  passed) — and because the fixes changed code, the agent was re-reviewing
+  (round 3) when its turn ended: the staleness-invalidation rule applied
+  unprompted.
+- **Checkpoint commits named by loop step throughout** — the exact behavior
+  both RED baselines lacked.
+- Ended mid-loop at a bounded turn limit, leaving textbook crash-state:
+  `in-progress` + write-ahead + step journal + dangling `running` session.
+- Shape gap found: gate verdicts recorded in the step journal, but the
+  `plan-review` slot left "(pending)" — fixed in the template ("fill each
+  review slot when its gate completes").
+
+### GREEN-2b — dead-run recovery (running): a second fresh no-skill agent on
+the same repo must detect the dangling session, reconstruct, and take SG-1
+through merge/evidence/`done`.
+
 ### GREEN-4 — dispatch edge: foreign docs/PLAN.md, unattended, 2:10am — PASS
 
 Foreign file = a human's 2024 roadmap draft occupying `docs/PLAN.md`.

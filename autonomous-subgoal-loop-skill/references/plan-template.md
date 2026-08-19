@@ -74,6 +74,8 @@ close: date, command as run, actual result, and merge SHA/PR when the git
 policy requires integration) · status `pending | in-progress | done | blocked`
 · dependencies (subgoal ids) · step journal (one line per completed loop step)
 · write-ahead intent while in-progress ("attempting X, expect Y").
+Each review slot is filled **when its gate completes** — not deferred to
+UPDATE, where a crash would orphan the verdict into journal prose.
 Status transitions are conditional: `done` requires evidence + both reviews
 recorded with no unresolved findings, and is set **after** the merge it
 references. `blocked` requires: diagnosis, exact state, hypotheses tried,
