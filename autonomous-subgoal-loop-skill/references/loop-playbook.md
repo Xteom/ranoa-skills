@@ -8,17 +8,23 @@ first and follow *it*, using this file for the mechanics it doesn't restate.
 
 1. Validate `docs/PLAN.md` against the readiness contract (plan-template.md).
    Failure → repair mode, not execution.
-2. If the previous run died mid-way (stale `in-progress`, no morning report):
-   reconstruct its report from the step journal, checkpoints, git/PR state,
-   and test evidence; recover the subgoal from its write-ahead intent.
-3. Pick the next executable subgoal: first `pending` whose dependencies are
-   all `done`, in backlog order. `blocked` re-enters only with new
-   information. Session-focus argument narrows this selection.
-4. Run the loop below — one fresh-context subagent per subgoal.
-5. Repeat until no executable subgoal remains (or the focus says stop). Then
+2. If any session record is still `running` with no closing morning report —
+   regardless of subgoal states — that run died: reconstruct its report from
+   step journals, checkpoints, git/PR state, and test evidence; recover any
+   `in-progress` subgoal from its write-ahead intent.
+3. Open THIS session's record (id, date, focus, `running`) before anything
+   else — it's what makes this run's own death detectable.
+4. Pick the next executable subgoal: first `pending` whose dependencies are
+   all `done`, in backlog order. During normal selection, `blocked` re-enters
+   only with new information; the one exception is step 6's end-of-session
+   fresh-eyes revisit, which needs none. Session-focus argument narrows this
+   selection.
+5. Run the loop below — one fresh-context subagent per **attempt** (a
+   revisited subgoal gets a new fresh subagent, never the old context).
+6. Repeat until no executable subgoal remains (or the focus says stop). Then
    revisit parked subgoals once with a fresh subagent — fresh eyes on a
    parked problem beat attempt 15 from the same context.
-6. Write the morning report.
+7. Write the morning report, closing the session record.
 
 ## Fresh context is mechanism, not metaphor
 
@@ -47,16 +53,24 @@ sequential fresh-eyes pass — re-read only from files, not conversation memory
               "in-progress: attempting X, expect Y." A dead run's successor
               reads what was being attempted; a live run measures surprise
               against it.
-2. PLAN       Small steps. Fix HERE, before implementing: named test cases
-              (inputs, expected outcomes) AND the exact verification command +
-              expected result. Changing any of these later = logged
-              justification + renewed plan review. Use the runtime's process
-              skills (brainstorming, TDD) when available.
-              ADVERSARIAL GATE 1: fresh reviewer attacks the subgoal plan.
+2. PLAN       Small steps, written as the subgoal's execution-plan artifact
+              (bounded; stored where the Plan's structure puts it; referenced
+              from the subgoal record — this is what the reviewer receives
+              and what a crash can't lose). Fix HERE, before implementing:
+              named test cases (inputs, expected outcomes) AND the exact
+              verification command + expected result. Changing any of these
+              later = logged justification + renewed plan review. Use the
+              runtime's process skills in order — brainstorming → planning →
+              TDD — where available; the loop supplies the discipline for
+              whichever is missing.
+              ADVERSARIAL GATE 1: fresh reviewer attacks the execution plan.
+              Record verdict + findings→resolutions (or the explicit verified
+              list) in the subgoal's plan-review slot.
 3. EXECUTE    Minimum necessary. Explicit parameters, no magic values.
 4. ADVERSARY  ADVERSARIAL GATE 2: fresh reviewer attacks the diff — logic,
               edge cases, consistency with spec and conventions, hardcoding.
-              Findings are fixed before advancing.
+              Findings are fixed before advancing. Record verdict + reviewed
+              branch/commit in the subgoal's diff-review slot.
 5. TEST       Run the tests fixed at PLAN (plus the suite) in the container.
               Touched something old? Re-test it. Modifying an existing test
               requires a justification in the decision log — a test is
@@ -72,13 +86,18 @@ sequential fresh-eyes pass — re-read only from files, not conversation memory
               existing entry, open an Inconsistencies item, and route the
               model change (restructure, source-authority doubt) through the
               decision log. Recorded, never silent.
-8. UPDATE     `done` ONLY with evidence executed this session: the
-              verification command fixed at PLAN ran, and its result is
-              referenced in the Plan. If that command cannot run here, the
-              subgoal is `blocked` with a diagnosis — the criterion is never
-              silently downgraded to whatever was runnable. Update state,
-              decisions, problems; restructure the Plan if needed (with
-              adversary). Merge; clean branch (guarded allowlist operation).
+8. UPDATE     Merge first (per the git policy), then close: fill the
+              subgoal's evidence slot — date, the verification command fixed
+              at PLAN as actually run, its actual result, merge SHA/PR — and
+              only then set `done`. A crash can leave an unmerged subgoal
+              `in-progress`; it can never leave `done` pointing at unmerged
+              code. If the verification command cannot run here, the subgoal
+              is `blocked` with its required fields (diagnosis, state,
+              hypotheses tried, options, recommendation, scope) — the
+              criterion is never silently downgraded to whatever was
+              runnable. Update decisions and problems; restructure the Plan
+              if needed (with adversary); clean the branch (guarded allowlist
+              operation); archive the execution-plan artifact.
 ```
 
 **Step journal:** after each completed step, append one compact line to the
@@ -103,8 +122,15 @@ assumption costs minutes tomorrow; a stopped night costs the night.
 ## Morning report (always — the run's last write)
 
 What merged; what's `blocked` and why; decisions taken and assumptions to
-validate; refactors/cleanups; new tests; recommended next attack. It's the
-first thing read in the morning; without it, auditing the run costs more than
-supervising it would have. If the run dies before writing it, the next
-session reconstructs it (session flow step 2) — which works because the step
-journal and checkpoints were written along the way.
+validate; refactors/cleanups; new tests; recommended next attack. It closes
+the session record opened at start. It's the first thing read in the morning;
+without it, auditing the run costs more than supervising it would have. If
+the run dies before writing it, the next session reconstructs it (session
+flow step 2) — which works because the step journal and checkpoints were
+written along the way.
+
+**Global blocker paths.** A global blocker halts code and external mutation.
+The Plan report is still written — that's the diagnosis the morning needs —
+UNLESS the Plan's own integrity is the blocker (corruption, suspected
+tampering): then report out-of-band (final message / a separate file outside
+`docs/`) and state explicitly that the Plan was not touched.

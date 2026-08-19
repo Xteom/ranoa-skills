@@ -30,7 +30,13 @@ focus (e.g. `only subgoal 3`, `stop after two merges`). Reserved keyword
 |---|---|---|
 | Absent | **Bootstrap**: interview the human, investigate, design and write the Plan | `references/interview.md` |
 | Present and loop-ready (passes the readiness contract in plan-template.md) | **Loop**: execute subgoals under the Plan's ruleset; zero inputs needed | `references/loop-playbook.md` |
-| Present but foreign, partial, or failing readiness | **Repair**: adopt/complete it with the human if present; in an unattended run, stop with a report | `references/plan-template.md` |
+| Present but foreign, partial, or failing readiness | **Repair**: follow the repair recipe — adopt/complete with the human if present; in an unattended run, stop with a report | `references/plan-template.md` |
+
+The `reconfigure` argument takes precedence over this table: it runs the
+reconfigure flow (requires a ready Plan and no `in-progress` subgoal — finish
+or park first). Attended vs unattended is decided by one predicate: a human is
+present if the invocation is interactive and a human actually responds;
+otherwise treat the run as unattended.
 
 Bootstrap writes `docs/PLAN.md` **last**, after its content passes validation,
 so a crashed bootstrap never leaves a loop-ready-looking entry point.
@@ -49,10 +55,15 @@ write-ahead intent and step journal, don't restart blind.
    name/prefix, allowed verbs)* — are permitted. An unlisted verb on a listed
    resource is denied. Every external-write policy the interview enables is
    compiled into allowlist entries; loop agents execute the allowlist, never
-   infer authorization from policy prose.
+   infer authorization from policy prose. Permission changes and destructive
+   verbs never enter an allowlist by default — each requires the human's
+   explicit confirmation at interview.
 4. Destruction is confined to the disposable workspace (container/sandbox).
-   The one guarded exception: `delete-merged-feature-branch` when allowlisted
-   (exact ref, verified merged, integration branch never deletable).
+   Host files, mounted secrets, and shared services are outside that boundary
+   even when reachable from inside it. The one guarded destructive default:
+   the `delete-merged-feature-branch` verb, whose mandatory preflight verifies
+   the ref matches the allowlisted feature prefix, is fully merged into the
+   integration branch, and is not the integration branch.
 
 ## Mechanical invariants
 

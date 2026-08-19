@@ -29,13 +29,15 @@ unilaterally when the human is one question away.
    fresh-context subagent (verdict obligation, see loop-playbook.md): can a
    truly fresh agent resume from this? Does it scale or become a monster
    file? Where will it rot?
-5. **Write the Plan.** Everything in plan-template.md: ruleset, sources of
-   truth, scope, allowlist (compiled from the confirmed policies), reading
-   map, memory sections, and an initial subgoal backlog with verifiable
-   acceptance criteria (exact command + expected result each). Validate
-   against the readiness contract, then write `docs/PLAN.md` itself **last**.
-   Add a one-line pointer to `docs/PLAN.md` from the repo's agent-instructions
-   file (CLAUDE.md / AGENTS.md) if one exists.
+5. **Write the Plan.** Everything in plan-template.md: marker line, mission,
+   ruleset (complete per the completeness contract), sources of truth, scope,
+   allowlist (compiled from the confirmed policies), reading map, memory
+   sections, and an initial subgoal backlog with verifiable acceptance
+   criteria (exact command + expected result each). Run the readiness
+   contract's **content checks** on the candidate, then install
+   `docs/PLAN.md` itself **last**. Add a one-line pointer to `docs/PLAN.md`
+   from the repo's agent-instructions file (CLAUDE.md / AGENTS.md) if one
+   exists.
 6. **Report.** What was decided; every assumption marked "assumption to
    validate"; the first executable subgoal.
 
@@ -75,7 +77,9 @@ human can override any of it)
   allowlisted — resource **or verb** — is prohibited, without interpretation.
   Credentials referenced by path only. Everything runs in containers; no
   installing dependencies on the host. Freedom inside the container — run,
-  break, delete, experiment; the hard limit is only outward.
+  break, delete, experiment; the hard limit is the workspace boundary, and
+  host files, mounted secrets, and shared services sit outside it even when
+  reachable from inside.
 
 ### E. Code policy
 - **P:** No magic values; every parameter passed explicitly (a default that
