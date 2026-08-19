@@ -7,13 +7,18 @@ first and follow *it*, using this file for the mechanics it doesn't restate.
 ## Session flow
 
 1. Validate `docs/PLAN.md` against the readiness contract (plan-template.md).
-   Failure → repair mode, not execution.
+   Failure → repair mode, not execution. If the loaded skill diverges from
+   the Plan's skill-version stamp, treat the divergence as a proposed ruleset
+   change (SKILL.md invariant 5) before any subgoal work. Run the reading
+   map's environment smoke commands; a failed environment fact is handled as
+   an inconsistency, not silently worked around.
 2. If any session record is still `running` with no closing morning report —
    regardless of subgoal states — that run died: reconstruct its report from
    step journals, checkpoints, git/PR state, and test evidence; recover any
    `in-progress` subgoal from its write-ahead intent.
 3. Open THIS session's record (id, date, focus, `running`) before anything
-   else — it's what makes this run's own death detectable.
+   else — it's what makes this run's own death detectable — and add the
+   session's row to the reports index at open, not close.
 4. Pick the next executable subgoal: first `pending` whose dependencies are
    all `done`, in backlog order. During normal selection, `blocked` re-enters
    only with new information; the one exception is step 6's end-of-session
@@ -101,9 +106,12 @@ Never silent deviation, never implement-and-keep-debating.
 1. BRIEF      Fresh implementer reads docs/PLAN.md: state, lessons flagged for
               this subgoal, its read list (ONLY that). Before touching code,
               write-ahead the intent as a PREDICTION in the Plan:
-              "in-progress: attempting X, expect Y." A dead run's successor
-              reads what was being attempted; a live run measures surprise
-              against it.
+              "in-progress: attempting X, expect Y" — committed as its own
+              dedicated commit ending this step (the cleanest crash-recovery
+              artifact a run leaves). If the branch batches subgoals into one
+              coherent increment, the justification lives here. A dead run's
+              successor reads what was being attempted; a live run measures
+              surprise against it.
 2. PLAN       Small steps, written as the subgoal's execution-plan artifact
               (bounded; stored where the Plan's structure puts it; referenced
               from the subgoal record — this is what the reviewer receives
@@ -128,7 +136,15 @@ Never silent deviation, never implement-and-keep-debating.
 5. TEST       Run the tests fixed at PLAN (plus the suite) in the container.
               Touched something old? Re-test it. Modifying an existing test
               requires a justification in the decision log — a test is
-              evidence, not an obstacle.
+              evidence, not an obstacle. Tests must BIND: ask what a broken
+              implementation would have to do to still pass; observe side
+              effects (logs, retries, cleanup) directly; measure budgeted
+              metrics on the exact span the budget names. For side-effect
+              deliverables, mutation is the honest instrument — delete the
+              feature; a suite that stays green was documentation. COMMIT
+              BEFORE ANY DESTRUCTIVE VERIFICATION (mutation runs, checkouts,
+              resets): uncommitted fixes are indistinguishable from the
+              mutations you're about to revert.
 6. CLEAN      Parsimonious refactor before closing: dead code, orphan
               helpers, temporary samples, ownerless TODOs, unused logic
               branches. Leave the campsite cleaner than you found it.
@@ -143,7 +159,13 @@ Never silent deviation, never implement-and-keep-debating.
 8. UPDATE     Merge first (per the git policy), then close: fill the
               subgoal's evidence slot — date, the verification command fixed
               at PLAN as actually run, its actual result, merge SHA/PR — and
-              only then set `done`. A crash can leave an unmerged subgoal
+              only then set `done`. The status transition and its evidence
+              land in the SAME commit, and evidence is written from the
+              result, never in anticipation of one. Closing PRESERVES the
+              write-ahead prediction: add the delivered note beside it (never
+              overwrite it) — REFLECT reads the delivered-vs-attempted delta.
+              Post-merge findings never reopen `done`: they spawn a suffixed
+              follow-up subgoal. A crash can leave an unmerged subgoal
               `in-progress`; it can never leave `done` pointing at unmerged
               code. If the verification command cannot run here, the subgoal
               is `blocked` with its required fields (diagnosis, state,

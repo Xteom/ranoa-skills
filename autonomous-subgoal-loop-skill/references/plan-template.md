@@ -38,6 +38,19 @@ A `docs/PLAN.md` without this marker is foreign by definition → repair mode.
 
 **Mission:** what the system is; what "done overall" looks like (1–3 lines).
 
+**Skill stamp:** the skill version/hash the ruleset was compiled from
+(bootstrap writes it; loop mode checks it — divergence is a proposed ruleset
+change, SKILL.md invariant 5).
+
+**Next executable subgoal pointer:** one line naming the next executable
+subgoal WITH its exact acceptance command — the first thing a fresh agent
+acts on — kept accurate **in the same commit that changes subgoal state**.
+
+**Coverage matrix** (required whenever topic K declared an external bar):
+every externally-imposed criterion → the subgoal that proves it, plus a
+visible "criteria we cannot verify, and why" list. The bar is decomposed by
+the backlog, never edited by it.
+
 **Sources of truth:** the authority-by-domain table (source → domain it rules)
 plus the conflict rule in force.
 
@@ -46,7 +59,8 @@ outside and who owns it; what we simulate and from which spec.
 
 **Ruleset** — the full effective ruleset, one line per rule, versioned via
 decision log. **Completeness contract:** there is at least one rule line for
-*each* interview topic A–J, plus the safety-floor restatement and the
+*each* interview topic A–L (K/L may be "not applicable", dated), plus the
+safety-floor restatement and the
 mechanical invariants. A topic the project disabled or overrode still gets its
 line, with the dated decision (`R7 testing: e2e-first default REPLACED by
 contract-tests-only, see D-014`). A missing topic line = not ready. A fresh
@@ -97,7 +111,14 @@ Inconsistencies item.
 
 **Reading map** (global onboarding): ordered entries — path · purpose · read
 fully or which part — then a separate do-not-read list (e.g. `legacy/`);
-credentials as a path only.
+credentials as a path only. Paths are repo-relative or explicitly
+machine-scoped (never bare absolute home paths — seeds travel); environment
+facts carry a smoke command sessions run at start. Three entry classes:
+pointer (default) · **digest** (a distilled heavy source, with source path +
+read date) · cached facts, only under a provenance header of the form
+"cached from <source> on <date>; on conflict the source wins". Any restated
+constant anywhere in the Plan names its authority the same way — restatements
+without a deferring pointer are how summaries drift into law.
 
 **Sessions & morning reports:** each session opens a session line FIRST (id,
 date, focus, status `running`) and is closed by its morning report (what
@@ -116,7 +137,7 @@ Any failure → repair mode:
 
 - [ ] Marker present as first line
 - [ ] Mission, sources-of-truth table, and scope boundary present
-- [ ] Ruleset passes the completeness contract (a line per topic A–J + safety
+- [ ] Ruleset passes the completeness contract (a line per topic A–L + safety
       floor + invariants; overrides dated)
 - [ ] Allowlist well-formed: every entry has environment, resource type,
       name/prefix, verbs; destructive/permission verbs only in guarded
@@ -124,7 +145,13 @@ Any failure → repair mode:
 - [ ] Every subgoal has the required fields; statuses valid; every `done` has
       evidence + both reviews; every `blocked` has its required fields;
       dependencies resolvable (no cycles, no unknown ids)
-- [ ] Reading map present and ordered; credentials appear as path only
+- [ ] Skill stamp present; next-executable pointer present and naming a
+      subgoal that is actually executable
+- [ ] Coverage matrix present when topic K declared an external bar; no
+      criterion without an owner or a cannot-verify entry
+- [ ] Reading map present and ordered; credentials appear as path only; no
+      bare absolute home paths; cached facts and restated constants carry
+      their provenance/authority pointers
 - [ ] Session records well-formed (a dangling `running` session is not a
       readiness failure — it triggers dead-run reconstruction in loop mode)
 - [ ] No merge-conflict markers, no truncation
@@ -146,3 +173,9 @@ Any failure → repair mode:
 If the repo has an agent-instructions file (CLAUDE.md / AGENTS.md), add one
 line pointing to `docs/PLAN.md`. The Plan, not that file, holds the content —
 the pointer just guarantees discovery by agents that didn't load this skill.
+Bootstrap also commits a **portable session prompt** (START-style file,
+<4,000 chars: dispatch conditional + safety-floor digest + "start at
+docs/PLAN.md") for runtimes without skill loading. Every bootstrap-era prompt
+file carries a lifecycle line — `reusable, every session` or `one-time,
+executed <date>` — so later agents neither re-run kickoffs nor shun their own
+session prompt.

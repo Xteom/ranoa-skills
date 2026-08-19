@@ -22,13 +22,15 @@ Target repo = the git root of the current working directory (multi-Plan
 monorepos are out of scope; if the root looks ambiguous, ask at bootstrap /
 treat as a global blocker in a run). Optional free-text argument = session
 focus (e.g. `only subgoal 3`, `stop after two merges`). Reserved keyword
-`reconfigure [section]` = re-open the interview for an existing Plan.
+`reconfigure [section]` = re-open the interview for an existing Plan. When
+the project spans multiple coordinated repos (a hub plus team repos), also
+read `references/multi-repo.md`.
 
 ## Mode dispatch (every invocation)
 
 | State of `docs/PLAN.md` | Mode | Read |
 |---|---|---|
-| Absent | **Bootstrap**: interview the human, investigate, design and write the Plan | `references/interview.md` |
+| Absent | **Bootstrap**: interview the human — or bootstrap from a seed facts-pack when one is present (see interview.md "Seeded bootstrap") — investigate, design and write the Plan | `references/interview.md` |
 | Present and loop-ready (passes the readiness contract in plan-template.md) | **Loop**: execute subgoals under the Plan's ruleset; zero inputs needed | `references/loop-playbook.md` |
 | Present but foreign, partial, or failing readiness | **Repair**: follow the repair recipe — adopt/complete with the human if present; in an unattended run, stop with a report | `references/plan-template.md` |
 
@@ -75,6 +77,10 @@ write-ahead intent and step journal, don't restart blind.
 3. Interview answers are persisted before any code work starts.
 4. Ruleset changes pass adversarial review, land in the decision log as
    versioned entries, and are forbidden while any subgoal is `in-progress`.
+5. The Plan records the skill version/hash it was compiled from. A loaded
+   skill that diverges from that stamp is a **proposed ruleset change** —
+   routed through the same adversarial intake, never silently followed
+   (safety-floor tightening applies immediately).
 
 Everything else — including the loop shape — is a default the interview can
 override per project.

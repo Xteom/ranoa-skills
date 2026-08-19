@@ -1,9 +1,20 @@
 # Bootstrap: interview + investigation → the Plan
 
-Bootstrap is the one moment a human is present. **Ask now, so the nights never
-have to.** Every question you leave unasked here becomes either a wrong guess
-or an unnecessary stop at 3am. The interview is mandatory: never freeze policy
-unilaterally when the human is one question away.
+Bootstrap is normally the one moment a human is present. **Ask now, so the
+nights never have to.** Every question you leave unasked here becomes either a
+wrong guess or an unnecessary stop at 3am. Never freeze policy unilaterally
+when the human is one question away.
+
+**Seeded bootstrap (the one unattended exception).** If the repo carries a
+seed facts-pack — a kickoff/handoff file that pre-answers the interview
+(mission, sources, scope, constraints, policies) — bootstrap may run
+unattended from it, under three conditions: the seed covers every fact topic;
+external-write policies are enabled only where the seed authorizes them
+explicitly; and every seed-derived answer is logged in the decision log as
+"answered by seed <path>". Gaps: interview the human if present; otherwise
+record the gap as an open problem and take the conservative default (no
+external-write enablement without explicit authorization). A seed is a
+pre-paid interview, not a bypass of it.
 
 ## Bootstrap sequence
 
@@ -11,7 +22,7 @@ unilaterally when the human is one question away.
    files, CI config, and any sibling/convention repos you can see — so the
    interview presents discovered candidates ("I found `docs/client/handoff.md`
    — is that the contract?") instead of asking cold.
-2. **Interview.** One topic at a time (A–J below). Policy questions present
+2. **Interview.** One topic at a time (A–L below; J closes). Policy questions present
    their default; accepting all defaults reproduces this skill's *procedural*
    ruleset — facts are always project-specific and must be answered. Policies
    that authorize external writes (auto-merge, deploys, cloud resources,
@@ -33,11 +44,16 @@ unilaterally when the human is one question away.
    ruleset (complete per the completeness contract), sources of truth, scope,
    allowlist (compiled from the confirmed policies), reading map, memory
    sections, and an initial subgoal backlog with verifiable acceptance
-   criteria (exact command + expected result each). Run the readiness
-   contract's **content checks** on the candidate, then install
-   `docs/PLAN.md` itself **last**. Add a one-line pointer to `docs/PLAN.md`
+   criteria (exact command + expected result each). Record the bootstrap
+   itself as **subgoal zero** — with its acceptance (readiness contract
+   passes), its adversarial verdict, and its merge evidence — so the Plan's
+   birth is auditable in the same currency as all later work. Run the
+   readiness contract's **content checks** on the candidate, then install
+   `docs/PLAN.md` itself **last**. Wire the entry point: a one-line pointer
    from the repo's agent-instructions file (CLAUDE.md / AGENTS.md) if one
-   exists.
+   exists, and a **portable session prompt** (a committed START-style file,
+   under 4,000 characters: the mode dispatch conditional, a safety-floor
+   digest, "start at docs/PLAN.md") for runtimes without skill loading.
 6. **Report.** What was decided; every assumption marked "assumption to
    validate"; the first executable subgoal.
 
@@ -72,7 +88,11 @@ human can override any of it)
 ### D. Hard constraints
 - **F:** Environments and which are touchable. External allowlist as
   *(environment, resource type, name/prefix, allowed verbs)*. Credentials
-  location (path only).
+  location (path only). A machine-local path map: shared docs use
+  repo-relative or explicitly machine-scoped paths, and each environment fact
+  gets a smoke command (credentials file exists, sibling repos reachable)
+  that sessions can run at start — documented worlds and real machines
+  diverge.
 - **P:** Only the development environment is touchable. Everything not
   allowlisted — resource **or verb** — is prohibited, without interpretation.
   Credentials referenced by path only. Everything runs in containers; no
@@ -102,11 +122,15 @@ human can override any of it)
 
 ### H. Git flow
 - **F:** Integration branch name.
-- **P:** Short GitHub flow: integration branch → branch per subgoal →
+- **P:** Short GitHub flow: integration branch → branch per increment →
   checkpoint commits → PR → CI green → merge → delete branch → re-branch.
-  One branch = one subgoal, never mixed. Checkpoint commits small and
-  frequent (message = which loop step completed) so a dead run recovers from
-  the last checkpoint. Stacked branches only when subgoal N+1 needs unmerged
+  **One branch = one coherent increment** — usually one subgoal; batching
+  tightly-coupled subgoals is allowed when the write-ahead records the
+  justification. Unrelated subgoals never mix. Thread the subgoal id through
+  branch (`sg-<id>-<slug>`), commit prefixes, and PR title, so one grep
+  reconstructs a subgoal's lifecycle. Checkpoint commits small and frequent
+  (message = which loop step completed) so a dead run recovers from the last
+  checkpoint. Stacked branches only when subgoal N+1 needs unmerged
   code from N; max 2 levels; rebase onto integration when N merges;
   force-push only your own stack branches, never the integration branch.
   Auto-merge: CI green = merge, no human approval — a PR waiting overnight is
@@ -131,6 +155,20 @@ human can override any of it)
   corrupt Plan) halts all mutation — diagnose and report. Before the session
   ends, revisit parked subgoals once with a fresh subagent. The morning
   report is always written (see loop-playbook.md).
+
+### K. External acceptance bar
+- **F:** Are any acceptance criteria imposed from outside the Plan (a client
+  milestone bar, a contract, a parity requirement)? If yes, the Plan records
+  them as **the bar, not the plan** — the backlog decomposes the bar but
+  never edits it — and maintains the coverage matrix (plan-template.md):
+  every criterion → the subgoal that proves it, plus a visible "cannot
+  verify" list. Criteria owned by no subgoal are how milestones fail
+  silently.
+
+### L. Multi-repo coordination
+- **F:** Does the project span multiple coordinated repos? If yes, read
+  `references/multi-repo.md` and interview its topics (hub, write channels,
+  parity roles).
 
 ### J. Loop shape & Plan properties
 - **P:** The 8-step loop and Plan properties exactly as specified in
