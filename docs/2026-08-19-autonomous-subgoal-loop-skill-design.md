@@ -34,8 +34,11 @@ Plan; the skill ships the source doc's ruleset as portable procedural defaults.
   human is present at bootstrap), loop mode treats it as a global blocker.
 - Mode dispatch:
   - No `docs/PLAN.md` at the root → **bootstrap mode**.
-  - `docs/PLAN.md` present **and loop-ready** (it carries the ruleset section
-    this skill writes) → **loop mode**.
+  - `docs/PLAN.md` present **and loop-ready** → **loop mode**. Loop-ready is a
+    readiness contract checked on **every** invocation, not a heading check:
+    complete effective ruleset present; safety floor restated; allowlist entries
+    well-formed *(env, resource type, name/prefix, verbs)*; every subgoal has a
+    valid status and resolvable dependencies. Any check failing → repair mode.
   - `docs/PLAN.md` present but foreign, partial, or conflicted → **repair mode**:
     never execute subgoals from an unvalidated Plan; adopt/complete it
     interactively if a human is present, otherwise stop with a report.
@@ -45,8 +48,9 @@ Plan; the skill ships the source doc's ruleset as portable procedural defaults.
 - Reserved keyword **`reconfigure`**: re-opens the interview (whole or named
   section) even when the Plan exists. Ruleset changes: cannot touch the safety
   floor; are recorded as versioned decision-log entries; pass adversarial review
-  before taking effect; apply from the next subgoal (an in-flight subgoal
-  finishes under the old rules unless the change is safety-motivated).
+  before taking effect; and are **forbidden while any subgoal is `in-progress`**
+  — finish or park it first, so exactly one ruleset version ever governs a
+  subgoal and crash recovery is unambiguous.
 
 ## Safety floor (never interviewable, never reconfigurable)
 
@@ -57,7 +61,13 @@ Plan; the skill ships the source doc's ruleset as portable procedural defaults.
    operations matching the Plan's allowlist — entries of the form
    *(environment, resource type, name/prefix, allowed verbs)* — are permitted.
    An unlisted verb on a listed resource is still denied. Permission changes and
-   destructive verbs never enter an allowlist by default.
+   destructive verbs never enter an allowlist by default. **Every external-write
+   policy the interview confirms compiles into explicit allowlist entries**
+   (push, PR creation, merge, branch cleanup, cloud verbs) before the Plan is
+   ready — loop agents execute the allowlist, never infer authorization from
+   policy prose. Git branch cleanup is the one destructive default: a guarded
+   `delete-merged-feature-branch` entry (exact ref, verified merged, integration
+   branch never deletable).
 4. **Destruction is confined to the disposable workspace** (the container/local
    sandbox). "Total local freedom" means inside that boundary only — not host
    files, mounted secrets, or shared services.
@@ -135,8 +145,13 @@ from conversation memory) and note the limitation in the log.
 1. BRIEF      → fresh implementer reads docs/PLAN.md → its subgoal's read list
                (only that). Write-ahead intent as PREDICTION: "attempting X,
                expect Y" — this is what makes surprise measurable.
-2. PLAN       → small steps; acceptance criteria + NAMED test cases (inputs,
-               expected outcomes) fixed HERE, before implementation.
+2. PLAN       → small steps; acceptance = NAMED test cases (inputs, expected
+               outcomes) PLUS the exact verification command and expected
+               result, all fixed HERE, before implementation. Changing any of
+               them later requires a logged justification + renewed plan
+               review. Use the runtime's process skills (brainstorm/plan/TDD)
+               when available; the loop's own steps carry the discipline when
+               they are not.
                ADVERSARIAL GATE #1: fresh reviewer attacks the subgoal plan.
 3. EXECUTE    → minimum necessary, explicit, no hardcoding.
 4. ADVERSARY  → ADVERSARIAL GATE #2: fresh reviewer attacks the diff (logic,
@@ -150,12 +165,22 @@ from conversation memory) and note the limitation in the log.
                predict)? Every surprise states its PROPAGATION — which Plan
                sections/subgoals it invalidates; the next subgoal's BRIEF
                verifies it. RECURRENCE RULE: the same surprise twice = model
-               error → restructure the Plan / distrust the source, don't log
-               a third entry.
-8. UPDATE     → `done` ONLY with evidence executed this session (verification
-               command + result referenced in the Plan). Update state,
-               decisions, problems; merge; clean branch.
+               error → increment/link the existing entry (never a third
+               identical diary line), open an Inconsistencies item, and route
+               the model change (Plan restructure, source-authority doubt)
+               through the decision log — recorded, never silent.
+8. UPDATE     → `done` ONLY with evidence executed this session: the
+               verification command fixed at PLAN ran, and its result is
+               referenced in the Plan. If that command cannot run here, the
+               subgoal is `blocked` (with diagnosis), not `done` — the
+               criterion is never silently downgraded. Update state,
+               decisions, problems; merge; clean branch (guarded allowlist op).
 ```
+
+**Step journal:** each completed step appends one compact line to the subgoal's
+entry (step, key outcome, command/result if any). With checkpoint commits this
+is what makes a mid-loop crash recoverable and the morning report
+reconstructable — write-ahead at BRIEF alone is not enough.
 
 **Concurrency assumption:** one autonomous session at a time (per source doc;
 worktrees/parallel agents out of scope v1 — stated in SKILL.md). A fresh session
@@ -214,8 +239,11 @@ documented verbatim*, not assumed.
    "looks fine" temptation. Multiple reps (single samples lie).
 4. **Dispatch edge cases:** foreign/partial `docs/PLAN.md` → must route to
    repair, not loop.
-5. **Safety-floor override attempt:** interview answers try to allowlist a
-   production resource / relax secret handling → skill must refuse and record.
+5. **Safety-floor / allowlist boundary:** (a) owner constraint says dev-only,
+   interview answer attempts prod → refuse and record; (b) loop agent attempts
+   an unlisted resource; (c) loop agent attempts an unlisted *verb* on a listed
+   resource → both denied. (Production is an environment policy, not safety
+   floor per se — the refusal test is anchored to the owner constraint.)
 
 REFACTOR: capture rationalizations verbatim, add counters, re-test.
 
@@ -243,3 +271,32 @@ Verdict was REWORK (18 findings). Dispositions:
 | 16 | Memory schemas weakened | **Accepted**: required fields in plan-template.md + Plan-is-general boundary + do-not-read map |
 | 17 | Reconfigure unsafe | **Adapted**: can't touch safety floor; versioned + adversarial review + next-subgoal retroactivity. Full transaction protocol rejected as disproportionate |
 | 18 | Testing plan gaps | **Adapted**: +2 families (dispatch edges, safety override), multi-rep discipline, observed-not-assumed baselines. Full crash-injection matrix rejected as disproportionate for a prose skill |
+
+## Appendix: Codex review round 2 — disposition
+
+Round 2 conceded #6/#8 rejections and closed #2, #3, #5, #7, #10, #11, #14,
+#16-core. Verdict REWORK on 8 remaining findings — all accepted (some in
+simplified single-agent form) and folded into the sections above:
+
+| # | Finding (short) | Disposition |
+|---|---|---|
+| R2-1 | Loop-ready was a heading check | **Accepted**: readiness contract checked on every invocation |
+| R2-2 | Confirmed policies ≠ allowlist entries | **Accepted**: policies compile into allowlist entries before readiness; family-5 tests re-anchored (owner constraint; unlisted resource; unlisted verb) |
+| R2-3 | Destruction floor vs branch deletion | **Accepted**: guarded `delete-merged-feature-branch` allowlist entry; integration branch never deletable |
+| R2-4 | Superpowers-per-step lost from defaults | **Adapted**: PLAN step defaults to runtime process skills when available; loop steps carry the discipline otherwise |
+| R2-5 | Verification command retrofittable | **Accepted**: exact command + expected result fixed at PLAN; later changes need logged justification + renewed plan review |
+| R2-6 | No per-step durability | **Adapted**: one-line step journal per completed step + checkpoint commits; recovery tested from one mid-loop crash boundary |
+| R2-7 | Reconfigure vs in-flight subgoal | **Accepted** (simple form): reconfigure forbidden while any subgoal is `in-progress` |
+| R2-8 | Recurrence rule vs append-only memory | **Accepted**: increment/link entries, route to Inconsistencies, authority changes via decision log — recorded, never silent |
+
+## Appendix: RED-phase calibration (2026-08-19)
+
+Baseline runs (see the testing log) showed evidence-faking does NOT reproduce
+at n=2 with claude-fable-5 subagents; the reproducing failures are structural:
+no interview while a human was available, unilaterally frozen over-conservative
+stop policy, nonstandard entry point, uncommitted work "for morning review"
+(rep-dependent — variance), no adversarial gate, no park/blocked vocabulary, no
+propagation routing. Per writing-skills "Match the Form to the Failure", the
+skill is therefore written as positive recipes + required template slots, not
+prohibition/rationalization tables; the evidence rule stays as a crisp contract
+line, not a bulletproofed discipline section.
