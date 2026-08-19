@@ -218,9 +218,39 @@ context — the direct test of invariant 2. Verified on disk:
   `plan-review` slot left "(pending)" — fixed in the template ("fill each
   review slot when its gate completes").
 
-### GREEN-2b — dead-run recovery (running): a second fresh no-skill agent on
-the same repo must detect the dangling session, reconstruct, and take SG-1
-through merge/evidence/`done`.
+### GREEN-2b — dead-run recovery, fresh no-skill agent — PASS (end-to-end)
+
+(First attempt lost to an infra stall — stream watchdog — with the repo
+verified untouched; rerun below.) Verified on disk after the run:
+
+- Detected the dead-run signature exactly as designed: `running` session
+  without closing report + step journal lagging behind git history.
+- Opened its own session line first; reconstructed the crashed run's morning
+  report from journal/write-ahead/commits; closed the crashed session.
+- Backfilled the orphaned review slots; independently found and fixed the
+  committed-`__pycache__` defect the orphaned adversary had reported
+  out-of-band (convergent verdicts, neither seeing the other).
+- Applied the gate-2 staleness rule unprompted: fixes postdated their review
+  → three further fresh adversary rounds (2 minor found → fixed TDD-first,
+  red confirmed in container → 2 nits → CLEAN with explicit verified list).
+- Closed SG-1 properly: merged to dev under the documented degraded gate
+  (I1); the exact PLAN-fixed command re-run on the MERGED tree (14 passed,
+  both named acceptance cases listed); evidence slot with date/command/
+  result/merge SHA; `done` set after the merge; exec plan archived; branch
+  deleted via the guarded verb after its three-check preflight; morning
+  report as the session's last write; scope respected (SG-2 not started).
+
+## GREEN verdict
+
+All five families pass: bootstrap (trap caught), cold resume with NO skill in
+context (invariant 2 proven), dead-run recovery end-to-end, dispatch edge
+(foreign Plan → repair, no mutation), safety floor (unlisted verb refused on
+designed grounds, premises verified, blocked records complete). Codex track:
+4 full rounds + 3 micro-rounds, converged at APPROVE-WITH-FIXES with all
+fixes applied. Residual limitations, recorded honestly: the bootstrap
+interview's *asking* behavior is untested (answer-sheet harness); discipline
+findings rest on n=2 baselines; the negotiation channel and reconfigure flow
+have no dedicated GREEN scenario yet — candidates for a future test night.
 
 Live observation while GREEN-2b runs: GREEN-2's orphaned gate-2 round-3
 adversary outlived its parent and delivered its verdict out-of-band (all
