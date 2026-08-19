@@ -63,18 +63,30 @@ sequential fresh-eyes pass — re-read only from files, not conversation memory
 
 ## The architecture is not written in stone
 
-The planned approach — a subgoal's execution plan, or the system's
-architecture itself — is a model, not a contract. An implementer who finds a
-better way that serves the same objective proposes it rather than silently
-complying or silently deviating: state the better way, why it aligns with the
-objective and constraints, and what it invalidates. The proposal goes to a
-fresh adversary (gate-1 rules: verdict obligation), and the two converge
-through argument. Agreement → one decision-log entry (old approach, new
-approach, why, discarded alternative) + update the affected execution plan,
-subgoals, and Plan sections. No agreement → implement as planned and park the
-proposal in Open Problems for the morning. Never silent deviation, never
-implement-and-keep-debating. (Safety floor and owner constraints are outside
-this channel — those aren't architecture.)
+The planned implementation approach is a model, not a contract. An implementer
+who finds a better way that serves the same objective proposes it rather than
+silently complying or silently deviating: persist the proposal (the better
+way; why it aligns with the objective and constraints; what it invalidates)
+and talk it out with a fresh adversary (gate-1 rules: verdict obligation).
+
+**Scope of this channel: implementation approach only.** Changing acceptance
+criteria, test cases, or verification commands uses their own path (logged
+justification + renewed gate 1). Changing ruleset, scope, objectives, or
+allowlist goes through `reconfigure` — park or finish the subgoal first.
+Safety floor and owner constraints are outside every channel.
+
+- **Agreement** → one decision-log entry (old approach, new approach, why,
+  discarded alternative); update the execution plan; then a fresh gate-1
+  review of the updated plan — final artifact only, no negotiation
+  transcript — before execution.
+- **No agreement** → implement as planned ONLY if the original plan still
+  stands gate-1-approved and the adversary records the proposal as an
+  optional improvement; park the proposal in Open Problems for the morning.
+  An unresolved correctness or constraint finding against the original plan
+  still blocks — a disagreement of taste is not a finding, and a finding is
+  not taste.
+
+Never silent deviation, never implement-and-keep-debating.
 
 ## The loop (per subgoal)
 

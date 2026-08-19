@@ -291,13 +291,19 @@ simplified single-agent form) and folded into the sections above:
 
 ## Amendment (2026-08-19, Mateo): architecture negotiation channel
 
-The planned approach and system architecture are explicitly not written in
-stone: an implementer that finds a better way aligned with the objective
-proposes it; implementer and a fresh adversary talk and converge; agreement is
-recorded in the decision log and propagated; no agreement → implement as
-planned, park the proposal for the morning. Encoded in loop-playbook.md ("The
-architecture is not written in stone"). Safety floor and owner constraints
-are outside this channel.
+The planned approach is explicitly not written in stone: an implementer that
+finds a better way aligned with the objective proposes it; implementer and a
+fresh adversary talk and converge; agreement is recorded in the decision log,
+the updated execution plan gets a fresh gate-1 review (final artifact only),
+then execution proceeds. No agreement → implement as planned only if the
+original plan remains gate-1-approved (an unresolved finding still blocks),
+parking the proposal for the morning. Channel scope is implementation
+approach only: acceptance/verification changes keep their logged-justification
++ renewed-gate-1 path; ruleset/scope/objective/allowlist changes go through
+`reconfigure`; safety floor and owner constraints are outside every channel.
+Encoded in loop-playbook.md ("The architecture is not written in stone");
+codex micro-round REWORK findings (unbounded scope, verdict bypass, skipped
+gate) accepted and folded in.
 
 ## Appendix: RED-phase calibration (2026-08-19)
 
