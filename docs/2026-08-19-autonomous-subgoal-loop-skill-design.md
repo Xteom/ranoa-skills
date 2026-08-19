@@ -289,6 +289,16 @@ simplified single-agent form) and folded into the sections above:
 | R2-7 | Reconfigure vs in-flight subgoal | **Accepted** (simple form): reconfigure forbidden while any subgoal is `in-progress` |
 | R2-8 | Recurrence rule vs append-only memory | **Accepted**: increment/link entries, route to Inconsistencies, authority changes via decision log — recorded, never silent |
 
+## Amendment (2026-08-19, Mateo): architecture negotiation channel
+
+The planned approach and system architecture are explicitly not written in
+stone: an implementer that finds a better way aligned with the objective
+proposes it; implementer and a fresh adversary talk and converge; agreement is
+recorded in the decision log and propagated; no agreement → implement as
+planned, park the proposal for the morning. Encoded in loop-playbook.md ("The
+architecture is not written in stone"). Safety floor and owner constraints
+are outside this channel.
+
 ## Appendix: RED-phase calibration (2026-08-19)
 
 Baseline runs (see the testing log) showed evidence-faking does NOT reproduce

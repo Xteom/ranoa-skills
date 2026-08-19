@@ -44,6 +44,21 @@ If subagent isolation is unavailable in this runtime, degrade explicitly:
 sequential fresh-eyes pass — re-read only from files, not conversation memory
 — and note the limitation in the log.
 
+## The architecture is not written in stone
+
+The planned approach — a subgoal's execution plan, or the system's
+architecture itself — is a model, not a contract. An implementer who finds a
+better way that serves the same objective proposes it rather than silently
+complying or silently deviating: state the better way, why it aligns with the
+objective and constraints, and what it invalidates. The proposal goes to a
+fresh adversary (gate-1 rules: verdict obligation), and the two converge
+through argument. Agreement → one decision-log entry (old approach, new
+approach, why, discarded alternative) + update the affected execution plan,
+subgoals, and Plan sections. No agreement → implement as planned and park the
+proposal in Open Problems for the morning. Never silent deviation, never
+implement-and-keep-debating. (Safety floor and owner constraints are outside
+this channel — those aren't architecture.)
+
 ## The loop (per subgoal)
 
 ```
