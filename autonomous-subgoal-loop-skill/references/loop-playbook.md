@@ -7,7 +7,10 @@ first and follow *it*, using this file for the mechanics it doesn't restate.
 ## Session flow
 
 1. Minimal integrity preflight, read-only: `docs/PLAN.md` exists, marker
-   first line, no conflict markers/truncation. Failure → repair mode.
+   first line, no conflict markers/truncation — plus the credential and
+   remote-identity smoke checks (read-only), so nothing is pushed to an
+   unverified remote. Integrity failure → repair; identity/credential smoke
+   failure → global blocker before any write.
 2. Open THIS session's record (id, date, focus, `running`) AND its reports-
    index row **in one commit**, before any other write — it's what makes
    this run's own death detectable. (If Plan integrity forbade the write,
@@ -16,7 +19,8 @@ first and follow *it*, using this file for the mechanics it doesn't restate.
    plan-template.md. On divergence with no recorded verdict for the loaded
    version: first recover or park any crashed `in-progress` subgoal under
    its original ruleset. **Unattended, the intake never self-approves**: log
-   the proposal (intake record), continue the whole session on the stamped
+   the proposal (intake record — a pending record for the same hash is
+   re-noted, never re-logged), continue the whole session on the stamped
    ruleset, and leave adoption to an attended `reconfigure`. The one
    exception is a floor-tightening that is a mechanical strict superset of
    the old floor (logged as such); a reworded or removed floor line is not a
@@ -197,8 +201,9 @@ Never silent deviation, never implement-and-keep-debating.
               hypotheses tried, options, recommendation, scope) — the
               criterion is never silently downgraded to whatever was
               runnable. Update decisions and problems; restructure the Plan
-              if needed (with adversary); clean the branch (guarded allowlist
-              operation); archive the execution-plan artifact.
+              if needed (with adversary); clean the branch ONLY if its verb
+              is allowlisted — otherwise log a pending-confirmation skip and
+              continue, never a blocker; archive the execution-plan artifact.
 ```
 
 **Step journal:** after each completed step, append one compact line to the

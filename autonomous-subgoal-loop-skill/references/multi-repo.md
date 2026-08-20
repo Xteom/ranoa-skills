@@ -35,7 +35,12 @@ Plan's allowlist at interview (topic L)** — hub writes obey the same
 deny-by-default floor as any external action; a channel missing from the
 allowlist leaves a pending-escalation outbox item, never an inferred
 permission. Per-channel hub merge policy: status → auto-merge on hub CI
-green; inconsistency/ADR/contract → human-gated.
+green; inconsistency/ADR/contract → human-gated. **Topic L verifies each
+auto-merge channel's prerequisite** (hub CI exists and gates hub main —
+else the channel downgrades to human-gated) **and compiles the merge verb
+too**, e.g. `(hub, pull-request, status/*, merge-on-green-ci)` — a create
+verb without its merge verb just piles up unmerged PRs, the field failure in
+new clothes.
 
 1. **Status** — one dated file per session at `status/<spoke>/<session>.md`
    (immutable per-session files, so parallel PRs never conflict at EOF),
@@ -63,8 +68,8 @@ never mirrors spoke subgoals.
 Every escalation into a human-gated channel carries an **interim decision the
 spoke proceeds on** ("keep building against contract v1 while proposing the
 v2 field rename" is the model). Interim-proceed **never applies to stop-list
-matters** — permission scope, credentials, destructive operations stop, full
-stop. BRIEF re-checks pending escalations each session; a stale escalation is
+matters** (topic I's closed list ①–③ — security/permissions, outside
+scope/allowlist, irreversible + indecidable). BRIEF re-checks pending escalations each session; a stale escalation is
 re-raised in the status file, never silently dropped and never waited on.
 
 ## Parity protocol (sibling spokes)

@@ -147,8 +147,9 @@ manifest — repo URLs, roles, branches, owned path domains, convention-setter
 per shared surface, and one integration owner per cross-repo criterion ·
 adoption ledger (sibling ideas: adopted / not-yet) · pending escalations,
 each with channel, hub PR, **interim decision being proceeded on**, status,
-last check · the hub write channels compiled as allowlist entries (e.g.
-`(hub, status-file, status/<spoke>/, append-via-pr)`,
+last check · the hub write channels compiled as allowlist entries including
+their merge verbs (e.g. `(hub, status-file, status/<spoke>/, create-via-pr)`,
+`(hub, pull-request, status/*, merge-on-green-ci)`,
 `(hub, pull-request, →main, create)`).
 
 ## Readiness contract
@@ -185,6 +186,8 @@ Any failure → repair mode:
 - [ ] Portable session prompt exists, under 4,000 chars, carries its
       lifecycle line, and its safety digest defers ("the binding floor is
       the Plan's restatement; on conflict the Plan wins")
+- [ ] The Plan's safety-floor restatement semantically matches SKILL.md's
+      floor — a drifted or loosened restatement is a readiness failure
 - [ ] No merge-conflict markers, no truncation
 
 ## Repair recipe

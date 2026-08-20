@@ -26,7 +26,13 @@ unattended from it, under these conditions:
 Gaps: interview the human if present. Unattended, a gap on a substantive
 fact topic is a **hard stop** — facts are never guessed: commit a
 `BOOTSTRAP-BLOCKED.md` naming the missing topics and stop with a report
-(likewise when no seed exists at all). A seed should be topic-keyed so
+(likewise when no seed exists at all). Committing and pushing that beacon to
+the integration remote is authorized pre-Plan — it is the one write a
+blocked bootstrap may make, and an unpushed beacon in an ephemeral sandbox
+reaches no one. When a policy's verb wasn't confirmed (no live human), the
+compiled ruleset line **omits that verb** and notes it pending confirmation
+— the topic-H flow compiles as "merge → log cleanup-pending → re-branch"
+rather than instructing a denied delete. A seed should be topic-keyed so
 coverage is checkable, and the adversarial design review (step 4) includes a
 seed-coverage verdict. **Attended bootstrap with a seed is a fast-path
 confirmation, not silence:** present the seed's answers — external-write
@@ -64,12 +70,18 @@ interview, not a bypass of it.
    criteria (exact command + expected result each). Record the bootstrap
    itself as **subgoal zero**, which installs as `in-progress` with its
    write-ahead: evidence citing its own merge SHA cannot exist before the
-   merge does. The first loop session's first act closes it with the
+   merge does. The first loop session closes it (session flow step 6) with the
    *observed* bootstrap-merge SHA; the step-4 design review fills both of its
    review slots; a merge that predates CI (nothing to be green yet) uses a
    one-time merge-without-ci allowance the human or seed authorized. **The
-   Plan reaches the integration branch before any code branch is cut.** Run the readiness contract's **content checks** on the candidate,
-   then install `docs/PLAN.md` itself **last**. Wire the entry point per
+   Plan reaches the integration branch before any code branch is cut.** Run
+   the readiness contract's **content checks** on the candidate, then land
+   the install as **one atomic bootstrap increment**: a single PR/merge
+   carrying `docs/PLAN.md` (written last within it) together with the
+   entry-point wiring — the bootstrap PR is also the landing path for
+   root-level wiring files, since `push-plan-state` covers `docs/**` only; a
+   crash never leaves wiring without a Plan or a Plan without wiring. Wire
+   the entry point per
    plan-template.md "Entry-point wiring" (agent-file pointer + portable
    session prompt + lifecycle lines).
 6. **Report.** What was decided; every assumption marked "assumption to

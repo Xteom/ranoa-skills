@@ -30,7 +30,8 @@ read `references/multi-repo.md`.
 
 | State of `docs/PLAN.md` | Mode | Read |
 |---|---|---|
-| Absent | **Bootstrap**: interview the human — or bootstrap from a seed facts-pack when one is present (see interview.md "Seeded bootstrap") — investigate, design and write the Plan | `references/interview.md` |
+| Absent, no bootstrap leftovers | **Bootstrap**: interview the human — or bootstrap from a seed facts-pack when one is present (see interview.md "Seeded bootstrap") — investigate, design and write the Plan | `references/interview.md` |
+| Absent, but bootstrap leftovers present (entry-point pointer, START file, consumed seed, or BOOTSTRAP-BLOCKED.md) | **Repair**: a crashed or blocked bootstrap — never re-bootstrap over debris; a committed BOOTSTRAP-BLOCKED.md means stop with a report until a human resolves it | `references/plan-template.md` |
 | Present and loop-ready (passes the readiness contract in plan-template.md) | **Loop**: execute subgoals under the Plan's ruleset; zero inputs needed | `references/loop-playbook.md` |
 | Present but foreign, partial, or failing readiness | **Repair**: follow the repair recipe — adopt/complete with the human if present; in an unattended run, stop with a report | `references/plan-template.md` |
 
@@ -64,10 +65,12 @@ write-ahead intent and step journal, don't restart blind.
    that confirmation.
 4. Destruction is confined to the disposable workspace (container/sandbox).
    Host files, mounted secrets, and shared services are outside that boundary
-   even when reachable from inside it. The one guarded destructive default:
-   the `delete-merged-feature-branch` verb, whose mandatory preflight verifies
-   the ref matches the allowlisted feature prefix, is fully merged into the
-   integration branch, and is not the integration branch.
+   even when reachable from inside it. The only destructive verb with a
+   sanctioned form is `delete-merged-feature-branch`, whose mandatory
+   preflight verifies the ref matches the allowlisted feature prefix, is
+   fully merged into the integration branch, and is not the integration
+   branch — and like every destructive verb, it enters an allowlist only by
+   live-human confirmation (floor #3).
 
 ## Mechanical invariants
 
