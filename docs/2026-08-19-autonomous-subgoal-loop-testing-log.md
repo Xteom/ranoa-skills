@@ -308,6 +308,32 @@ every accepted finding applied through v5–v11, final codex verdict
 **APPROVE, no genuine remaining HIGH contradiction**. Convergence trend:
 18 → 15 → 8 → 4 → 3 → 1 → 0 findings.
 
+## Cold-review round (2026-08-20, unprimed reviewers on v11)
+
+At Mateo's direction, two reviewers with ZERO context (no design docs, no
+review history, no fix lists — skill directory only): a claudewo Fable
+session (APPROVE-WITH-FIXES, 0 CRIT/HIGH) and a cold codex (REWORK, 1 CRIT +
+10 HIGH). Method finding: both independently caught what 11 primed rounds
+never saw — **`reconfigure` was invoked everywhere and defined nowhere** —
+plus four more shared findings (beacon carve-out leak, batch/gate-2 ranges,
+gate-2-before-CLEAN double-review, missing example skeleton). Anchoring bias
+in primed review is real; keep a cold pass in the loop for future skills.
+
+Dispositions → v12 (`b0682d5`): 14 accepted/adapted — reconfigure flow
+written; bootstrap authorization = the confirmed interview/seed (a candidate
+Plan never self-authorizes); readiness requires the Plan committed on
+integration; loop reordered EXECUTE(red)→TEST→CLEAN→ADVERSARY(final head)
+with tree-verify at merge and reviewed-head/merge-SHA as separate fields;
+batch gate-2 semantics; seeds must answer I/K/L explicitly; retry budget
+default; read-list = initial boundary with logged expansion; next-action is
+project-level (focus-exhausted lives in the session record); stop-list ①
+exempts confirmed+preflighted guarded verbs; beacon scoped to the leftovers
+class; plan-state transport hint; fixed-vs-overridable preamble; example
+skeleton. 2 defended with rationale (session-record-first — the dead-run
+fix two primed reviewers demanded, docs-only and preflight-guarded;
+no locking protocol — single-session-per-repo scope). 1 rejected on source
+fidelity (explicit-defaults is the source doc's own rule, interviewable).
+
 Residual limitations, recorded honestly: the bootstrap interview's live
 *asking* behavior is untested (answer-sheet/seed harnesses); discipline
 findings rest on n=2 baselines; the negotiation channel, attended
