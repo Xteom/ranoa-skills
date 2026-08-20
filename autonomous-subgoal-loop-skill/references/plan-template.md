@@ -105,7 +105,9 @@ policy requires integration) · status `pending | in-progress | done | blocked`
 Each review slot is filled **when its gate completes** — not deferred to
 UPDATE, where a crash would orphan the verdict into journal prose.
 Status transitions are conditional: `done` requires evidence + both reviews
-recorded with no unresolved findings, and is set **after** the merge it
+recorded with no unresolved findings — a finding whose recorded resolution
+is a spawned follow-up subgoal counts as **resolved by transfer** (the
+record links the new subgoal id) — and `done` is set **after** the merge it
 references. `blocked` requires: diagnosis, exact state, hypotheses tried,
 options, recommendation, scope (local | global).
 
@@ -186,10 +188,12 @@ Any failure → repair mode:
 - [ ] Portable session prompt exists, under 4,000 chars, carries its
       lifecycle line, and its safety digest defers ("the binding floor is
       the Plan's restatement; on conflict the Plan wins")
-- [ ] The Plan's safety-floor restatement semantically matches the floor of
-      the **stamped** skill version — a drifted or loosened restatement is a
-      readiness failure; a delta between stamped and *loaded* skill is the
-      intake's business, never a readiness failure
+- [ ] Every floor restatement in the Plan's satellites (portable prompt
+      digest, wiring pointers) semantically matches **the Plan's own ruleset
+      floor lines** — an internal check, always executable; a drifted or
+      loosened restatement is a readiness failure. Deltas between the Plan's
+      floor lines and the *loaded* skill are the intake's business, never a
+      readiness failure
 - [ ] No merge-conflict markers, no truncation
 
 ## Repair recipe
@@ -207,7 +211,9 @@ Any failure → repair mode:
 2. **Preserve:** never overwrite or delete existing content; a foreign file's
    fate (relocate/rename) is the human's call.
 3. **If unattended:** stop with a report (what's wrong, options,
-   recommendation). Mutate nothing.
+   recommendation). Mutate nothing — with one carve-out: if no beacon exists
+   yet, committing and pushing `BOOTSTRAP-BLOCKED.md` (the floor's sole
+   pre-Plan exception) IS the report.
 4. **If attended:** interview only what's missing or contradicted, compile,
    pass the adversarial design review, re-run readiness, then install.
 
