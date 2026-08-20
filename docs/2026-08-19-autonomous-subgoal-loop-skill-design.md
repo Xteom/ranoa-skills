@@ -113,7 +113,7 @@ override.
 6. **Report** — what was decided, what was assumed ("assumption to validate"),
    what the first executable subgoal is.
 
-## Interview schema (topics A–J)
+## Interview schema (topics A–J; v4 added K external bar and L multi-repo — order A–I, K, L, J last)
 
 **F** = fact, must be answered; **P** = policy, has a default.
 
@@ -204,7 +204,7 @@ new tests, recommended next attack).
 autonomous-subgoal-loop-skill/
   SKILL.md                 # frontmatter, dispatch, safety floor, invariants, call syntax (lean)
   references/
-    interview.md           # full interview schema + defaults (topics A–J)
+    interview.md           # full interview schema + defaults (topics A–L)
     loop-playbook.md       # default loop + autonomy + git flow, full text the interview adapts
     plan-template.md       # Plan properties + required record fields + compact-ruleset format
 ```

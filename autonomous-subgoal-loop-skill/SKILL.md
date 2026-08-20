@@ -58,8 +58,9 @@ write-ahead intent and step journal, don't restart blind.
    resource is denied. Every external-write policy the interview enables is
    compiled into allowlist entries; loop agents execute the allowlist, never
    infer authorization from policy prose. Permission changes and destructive
-   verbs never enter an allowlist by default — each requires the human's
-   explicit confirmation at interview.
+   verbs never enter an allowlist by default — each requires a live human's
+   explicit confirmation at interview; a seed file can never substitute for
+   that confirmation.
 4. Destruction is confined to the disposable workspace (container/sandbox).
    Host files, mounted secrets, and shared services are outside that boundary
    even when reachable from inside it. The one guarded destructive default:
@@ -77,10 +78,15 @@ write-ahead intent and step journal, don't restart blind.
 3. Interview answers are persisted before any code work starts.
 4. Ruleset changes pass adversarial review, land in the decision log as
    versioned entries, and are forbidden while any subgoal is `in-progress`.
-5. The Plan records the skill version/hash it was compiled from. A loaded
-   skill that diverges from that stamp is a **proposed ruleset change** —
-   routed through the same adversarial intake, never silently followed
-   (safety-floor tightening applies immediately).
+5. The Plan records the skill version/hash it was compiled from (stamp format
+   and intake record: plan-template.md). A loaded skill that diverges from
+   that stamp is a **proposed ruleset change** — never silently followed.
+   While intake is pending: the stamped ruleset governs non-safety behavior;
+   safety is the most restrictive combination of old and new floors; a
+   crashed `in-progress` subgoal is recovered or parked first, under its
+   original ruleset; no new subgoal starts until intake resolves. Verdicts
+   (accept or reject) are recorded per skill version, so a rejected version
+   never re-fires intake.
 
 Everything else — including the loop shape — is a default the interview can
 override per project.

@@ -8,13 +8,26 @@ when the human is one question away.
 **Seeded bootstrap (the one unattended exception).** If the repo carries a
 seed facts-pack — a kickoff/handoff file that pre-answers the interview
 (mission, sources, scope, constraints, policies) — bootstrap may run
-unattended from it, under three conditions: the seed covers every fact topic;
-external-write policies are enabled only where the seed authorizes them
-explicitly; and every seed-derived answer is logged in the decision log as
-"answered by seed <path>". Gaps: interview the human if present; otherwise
-record the gap as an open problem and take the conservative default (no
-external-write enablement without explicit authorization). A seed is a
-pre-paid interview, not a bypass of it.
+unattended from it, under these conditions:
+
+- The seed covers every substantive fact topic (A–D, H); silence there is a
+  gap. Silence on a yes/no or if-any fact (I additions, K, L) reads as "no",
+  logged as "answered by seed <path> (by omission) — assumption to validate".
+- Ordinary external-write policies are enabled only where the seed authorizes
+  them explicitly. **Destructive and permission-changing verbs are never
+  seed-grantable**: the seed may propose them, and they stay out of the
+  allowlist until a live human confirms (safety floor #3).
+- Every seed-derived answer is logged "answered by seed <path>", and the
+  decision log records the seed's commit hash and author. A seed whose
+  authorship the human didn't establish at handoff is treated as
+  gap-everywhere.
+- The consumed seed gets its lifecycle line: `one-time, executed <date>`.
+
+Gaps: interview the human if present; otherwise record the gap as an open
+problem and take the conservative default (no external-write enablement).
+**Attended bootstrap with a seed is a fast-path confirmation, not silence:**
+present the seed's answers — external-write policies item by item — for
+one-shot confirmation. A seed is a pre-paid interview, not a bypass of it.
 
 ## Bootstrap sequence
 
@@ -22,7 +35,7 @@ pre-paid interview, not a bypass of it.
    files, CI config, and any sibling/convention repos you can see — so the
    interview presents discovered candidates ("I found `docs/client/handoff.md`
    — is that the contract?") instead of asking cold.
-2. **Interview.** One topic at a time (A–L below; J closes). Policy questions present
+2. **Interview.** One topic at a time — A–I, then K, L, then J last. Policy questions present
    their default; accepting all defaults reproduces this skill's *procedural*
    ruleset — facts are always project-specific and must be answered. Policies
    that authorize external writes (auto-merge, deploys, cloud resources,
@@ -45,15 +58,15 @@ pre-paid interview, not a bypass of it.
    allowlist (compiled from the confirmed policies), reading map, memory
    sections, and an initial subgoal backlog with verifiable acceptance
    criteria (exact command + expected result each). Record the bootstrap
-   itself as **subgoal zero** — with its acceptance (readiness contract
-   passes), its adversarial verdict, and its merge evidence — so the Plan's
-   birth is auditable in the same currency as all later work. Run the
-   readiness contract's **content checks** on the candidate, then install
-   `docs/PLAN.md` itself **last**. Wire the entry point: a one-line pointer
-   from the repo's agent-instructions file (CLAUDE.md / AGENTS.md) if one
-   exists, and a **portable session prompt** (a committed START-style file,
-   under 4,000 characters: the mode dispatch conditional, a safety-floor
-   digest, "start at docs/PLAN.md") for runtimes without skill loading.
+   itself as **subgoal zero** — acceptance: the readiness content checks pass
+   and the entry point installs; evidence: the install commit itself, merged
+   to the integration branch (subgoal zero is the one subgoal whose evidence
+   IS its closing commit — it cannot run the full loop that doesn't exist
+   yet). **The Plan reaches the integration branch before any code branch is
+   cut.** Run the readiness contract's **content checks** on the candidate,
+   then install `docs/PLAN.md` itself **last**. Wire the entry point per
+   plan-template.md "Entry-point wiring" (agent-file pointer + portable
+   session prompt + lifecycle lines).
 6. **Report.** What was decided; every assumption marked "assumption to
    validate"; the first executable subgoal.
 
@@ -158,12 +171,9 @@ human can override any of it)
 
 ### K. External acceptance bar
 - **F:** Are any acceptance criteria imposed from outside the Plan (a client
-  milestone bar, a contract, a parity requirement)? If yes, the Plan records
-  them as **the bar, not the plan** — the backlog decomposes the bar but
-  never edits it — and maintains the coverage matrix (plan-template.md):
-  every criterion → the subgoal that proves it, plus a visible "cannot
-  verify" list. Criteria owned by no subgoal are how milestones fail
-  silently.
+  milestone bar, a contract, a parity requirement)? If yes, record the bar's
+  source + revision and maintain the coverage matrix per plan-template.md —
+  criteria owned by no subgoal are how milestones fail silently.
 
 ### L. Multi-repo coordination
 - **F:** Does the project span multiple coordinated repos? If yes, read

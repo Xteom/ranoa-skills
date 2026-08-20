@@ -16,29 +16,39 @@ One repo holds exactly what must be shared, nothing that any spoke owns:
 - **Decision records (ADRs)** with a numbering registry: claim the number in
   the registry before creating the file; supersede, never delete.
 - **The deliverable bar** — the externally-owned acceptance criteria (topic
-  K). The bar defines what done and parity mean, not how or in what order a
-  spoke gets there. Each spoke's coverage matrix maps the bar onto its own
-  backlog.
-- **The canonical protocol/skill copy** (spokes carry synced copies; a
-  divergence is ruleset-change intake per SKILL.md invariant 5, in every
-  repo).
+  K; semantics and matrix per plan-template.md). Each spoke's coverage
+  matrix maps the bar onto its own backlog, marking sibling-owned criteria
+  `owned by <spoke>`.
+- **The canonical protocol/skill copy** — the hub copy is canonical; spokes
+  carry synced copies. A spoke detecting divergence runs ruleset-change
+  intake (SKILL.md invariant 5) and raises its verdict through a hub channel
+  (ADR proposal or inconsistency entry) so all spokes converge on ONE
+  decision; local acceptance is interim, per non-blocking escalation.
 - **Status feeds and digests** (below), plus templates for shared artifact
   types.
 
 ## Closed write channels
 
 Spokes write to the hub ONLY through named PR channels — anything else is a
-spoke-Plan matter:
+spoke-Plan matter. **Every channel a spoke enables is compiled into its
+Plan's allowlist at interview (topic L)** — hub writes obey the same
+deny-by-default floor as any external action; a channel missing from the
+allowlist leaves a pending-escalation outbox item, never an inferred
+permission. Per-channel hub merge policy: status → auto-merge on hub CI
+green; inconsistency/ADR/contract → human-gated.
 
-1. **Status append** — one dated paragraph per session to
-   `status/<spoke>.md`, append-only (conflict-free by construction),
-   batch-merge exempt from one-topic-per-PR. Writing it is part of the
-   morning-report step itself, not a separate reminder — reminders alone
-   failed in the field (a spoke reached its 10th subgoal with central status
-   still "No sessions yet").
+1. **Status** — one dated file per session at `status/<spoke>/<session>.md`
+   (immutable per-session files, so parallel PRs never conflict at EOF),
+   batch-merge exempt from one-topic-per-PR. Pushing it happens immediately
+   BEFORE the closing morning-report commit, and the report's last line
+   records the status PR — the local report stays the spoke's final write.
+   Reminders alone failed in the field (a spoke reached its 10th subgoal
+   with central status still "No sessions yet").
 2. **Inconsistency entry** — cross-repo contradictions, with the proposing
    spoke's interim resolution.
-3. **ADR proposal.**
+3. **ADR proposal.** Numbering: the claim is a one-line registry-only PR
+   merged FIRST (the merge conflict is the lock); the ADR file PR references
+   the merged claim.
 4. **Contract change.**
 
 Each spoke's `docs/PLAN.md` remains the only tracker of its work. The hub

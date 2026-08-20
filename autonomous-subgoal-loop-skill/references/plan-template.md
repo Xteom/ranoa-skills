@@ -38,18 +38,31 @@ A `docs/PLAN.md` without this marker is foreign by definition → repair mode.
 
 **Mission:** what the system is; what "done overall" looks like (1–3 lines).
 
-**Skill stamp:** the skill version/hash the ruleset was compiled from
-(bootstrap writes it; loop mode checks it — divergence is a proposed ruleset
-change, SKILL.md invariant 5).
+**Skill stamp:** the content hash of the skill the ruleset was compiled from
+— computed as `cat SKILL.md references/interview.md references/loop-playbook.md
+references/plan-template.md references/multi-repo.md | sha256sum` from the
+skill's directory — recorded with the date. Loop mode recomputes with the
+same command. Divergence intake (SKILL.md invariant 5) produces an **intake
+record**: from-hash → to-hash, summary of the semantic diff, safety delta,
+adversarial verdict, accept/reject, effective-from; stamp, ruleset lines, and
+the decision entry change **atomically in one commit** on accept, and a
+rejected hash is recorded so it never re-fires intake.
 
-**Next executable subgoal pointer:** one line naming the next executable
-subgoal WITH its exact acceptance command — the first thing a fresh agent
-acts on — kept accurate **in the same commit that changes subgoal state**.
+**Next action:** one tagged line — `recover SG-x` (in-progress/dead-run
+state) · `execute SG-y — <exact acceptance command>` · `none —
+complete | dependency-blocked | focus-exhausted | global-blocker` — kept
+accurate **in the same commit that changes subgoal state**. It is a cache of
+the selection rule, never an authority: on mismatch the backlog wins and the
+mismatch is logged as an inconsistency.
 
 **Coverage matrix** (required whenever topic K declared an external bar):
-every externally-imposed criterion → the subgoal that proves it, plus a
-visible "criteria we cannot verify, and why" list. The bar is decomposed by
-the backlog, never edited by it.
+records the bar's source + revision/hash and enumerates its criteria with
+stable IDs — readiness compares that denominator against the matrix. Every
+criterion has an accountable owner: the subgoal that proves it, or (under
+topic L) `owned by <spoke>`, kept current by the parity protocol.
+"Cannot verify" is a **proof state, not an ownership substitute**: such an
+entry still has an owner, plus blocker, reason, and resolution owner. The
+bar is decomposed by the backlog, never edited by it.
 
 **Sources of truth:** the authority-by-domain table (source → domain it rules)
 plus the conflict rule in force.
@@ -120,13 +133,23 @@ read date) · cached facts, only under a provenance header of the form
 constant anywhere in the Plan names its authority the same way — restatements
 without a deferring pointer are how summaries drift into law.
 
-**Sessions & morning reports:** each session opens a session line FIRST (id,
-date, focus, status `running`) and is closed by its morning report (what
-merged; what's blocked and why; decisions and assumptions to validate;
-refactors; new tests; recommended next attack). Any `running` session without
-a closing report — regardless of subgoal states — means a dead run: the next
-session reconstructs its report from step journals, checkpoints, and git/PR
-state before doing anything else.
+**Sessions & morning reports:** each session opens a session line (id, date,
+focus, status `running`) **and its reports-index row in the same commit,
+after only the read-only integrity preflight** (loop-playbook session flow),
+and is closed by its morning report (what merged; what's blocked and why;
+decisions and assumptions to validate; refactors; new tests; recommended next
+attack). Any `running` session without a closing report — regardless of
+subgoal states — means a dead run: a later session reconstructs its report
+from step journals, checkpoints, and git/PR state.
+
+**Multi-repo records** (required whenever topic L is declared): coordination
+manifest — repo URLs, roles, branches, owned path domains, convention-setter
+per shared surface, and one integration owner per cross-repo criterion ·
+adoption ledger (sibling ideas: adopted / not-yet) · pending escalations,
+each with channel, hub PR, **interim decision being proceeded on**, status,
+last check · the hub write channels compiled as allowlist entries (e.g.
+`(hub, status-file, status/<spoke>/, append-via-pr)`,
+`(hub, pull-request, →main, create)`).
 
 ## Readiness contract
 
@@ -145,10 +168,15 @@ Any failure → repair mode:
 - [ ] Every subgoal has the required fields; statuses valid; every `done` has
       evidence + both reviews; every `blocked` has its required fields;
       dependencies resolvable (no cycles, no unknown ids)
-- [ ] Skill stamp present; next-executable pointer present and naming a
-      subgoal that is actually executable
-- [ ] Coverage matrix present when topic K declared an external bar; no
-      criterion without an owner or a cannot-verify entry
+- [ ] Skill stamp present; next-action line present, well-tagged, and
+      consistent with the backlog (recompute the selection rule to check)
+- [ ] Coverage matrix present when topic K declared an external bar; its
+      criterion IDs match the bar's recorded revision (denominator check);
+      every criterion has an accountable owner; cannot-verify entries carry
+      blocker + resolution owner
+- [ ] Multi-repo records present when topic L is declared (manifest,
+      adoption ledger, escalations with interim decisions); every hub write
+      channel appears as an allowlist entry
 - [ ] Reading map present and ordered; credentials appear as path only; no
       bare absolute home paths; cached facts and restated constants carry
       their provenance/authority pointers
@@ -176,6 +204,6 @@ the pointer just guarantees discovery by agents that didn't load this skill.
 Bootstrap also commits a **portable session prompt** (START-style file,
 <4,000 chars: dispatch conditional + safety-floor digest + "start at
 docs/PLAN.md") for runtimes without skill loading. Every bootstrap-era prompt
-file carries a lifecycle line — `reusable, every session` or `one-time,
-executed <date>` — so later agents neither re-run kickoffs nor shun their own
-session prompt.
+**or seed** file carries a lifecycle line — `reusable, every session` or
+`one-time, executed <date>` — so later agents neither re-run kickoffs nor
+shun their own session prompt.

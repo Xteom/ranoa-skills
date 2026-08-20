@@ -6,31 +6,37 @@ first and follow *it*, using this file for the mechanics it doesn't restate.
 
 ## Session flow
 
-1. Validate `docs/PLAN.md` against the readiness contract (plan-template.md).
-   Failure → repair mode, not execution. If the loaded skill diverges from
-   the Plan's skill-version stamp, treat the divergence as a proposed ruleset
-   change (SKILL.md invariant 5) before any subgoal work. Run the reading
-   map's environment smoke commands; a failed environment fact is handled as
-   an inconsistency, not silently worked around.
-2. If any session record is still `running` with no closing morning report —
-   regardless of subgoal states — that run died: reconstruct its report from
-   step journals, checkpoints, git/PR state, and test evidence; recover any
-   `in-progress` subgoal from its write-ahead intent.
-3. Open THIS session's record (id, date, focus, `running`) before anything
-   else — it's what makes this run's own death detectable — and add the
-   session's row to the reports index at open, not close.
-4. Pick the next executable subgoal: first `pending` whose dependencies are
-   all `done`, in backlog order. During normal selection, `blocked` re-enters
-   only with new information; the one exception is step 6's end-of-session
-   fresh-eyes revisit, which needs none. Session-focus argument narrows this
-   selection.
-5. Run the loop below — one fresh-context subagent per **attempt** (a
+1. Minimal integrity preflight, read-only: `docs/PLAN.md` exists, marker
+   first line, no conflict markers/truncation. Failure → repair mode.
+2. Open THIS session's record (id, date, focus, `running`) AND its reports-
+   index row **in one commit**, before any other write — it's what makes
+   this run's own death detectable. (If Plan integrity forbade the write,
+   record out-of-band and stay in repair.)
+3. Skill-stamp check (SKILL.md invariant 5): recompute the stamp per
+   plan-template.md. On divergence with no recorded verdict for the loaded
+   version: first recover or park any crashed `in-progress` subgoal under
+   its original ruleset, then run the intake; no NEW subgoal work until it
+   resolves.
+4. Dead-run pass: any OTHER session record still `running` with no closing
+   report — regardless of subgoal states — is a dead run: reconstruct its
+   report from step journals, checkpoints, git/PR state, and test evidence.
+5. Full readiness contract + the reading map's environment smoke commands.
+   Readiness failure → repair. A failed smoke on credentials, target
+   identity, or a touchable-environment fact = **global blocker**; missing
+   optional information (an unreachable sibling) = local, logged.
+6. Pick the next executable subgoal: first `pending` whose dependencies are
+   all `done`, in backlog order; recompute the Plan's next-action record
+   with every state change (plan-template.md). During normal selection,
+   `blocked` re-enters only with new information; the one exception is step
+   8's end-of-session fresh-eyes revisit, which needs none. Session-focus
+   argument narrows this selection.
+7. Run the loop below — one fresh-context subagent per **attempt** (a
    revisited subgoal gets a new fresh subagent, never the old context).
-6. Repeat until no executable subgoal remains (or the focus says stop). Then
+8. Repeat until no executable subgoal remains (or the focus says stop). Then
    revisit parked subgoals once with a fresh subagent — fresh eyes on a
    parked problem beat attempt 15 from the same context. Record the revisit
    as a line in this session's record, so it's attributable to this session.
-7. Write the morning report, closing the session record.
+9. Write the morning report, closing the session record.
 
 ## Driving a whole night with /goal
 
@@ -108,10 +114,16 @@ Never silent deviation, never implement-and-keep-debating.
               write-ahead the intent as a PREDICTION in the Plan:
               "in-progress: attempting X, expect Y" — committed as its own
               dedicated commit ending this step (the cleanest crash-recovery
-              artifact a run leaves). If the branch batches subgoals into one
-              coherent increment, the justification lives here. A dead run's
-              successor reads what was being attempted; a live run measures
-              surprise against it.
+              artifact a run leaves). Plan-state writes — write-ahead, step
+              journal, session records — land on the INTEGRATION branch;
+              only code rides the feature branch, so a deleted or unmerged
+              branch never strands the Plan's memory of it. If the branch
+              batches subgoals into one coherent increment, the
+              justification lives here, and the batched subgoals close
+              together at the increment's merge — evidence per subgoal, all
+              referencing that one merge SHA. A dead run's successor reads
+              what was being attempted; a live run measures surprise against
+              it.
 2. PLAN       Small steps, written as the subgoal's execution-plan artifact
               (bounded; stored where the Plan's structure puts it; referenced
               from the subgoal record — this is what the reviewer receives
@@ -128,11 +140,13 @@ Never silent deviation, never implement-and-keep-debating.
 3. EXECUTE    Minimum necessary. Explicit parameters, no magic values.
 4. ADVERSARY  ADVERSARIAL GATE 2: fresh reviewer attacks the diff — logic,
               edge cases, consistency with spec and conventions, hardcoding.
-              Findings are fixed before advancing. Record verdict + reviewed
-              commit in the subgoal's diff-review slot. If any later step
-              changes the code (test fixes, cleanup), the review is stale:
-              repeat gate 2 on the new diff — the diff-review slot must
-              reference the commit that actually merges.
+              Findings are fixed before advancing. Record in the subgoal's
+              diff-review slot: verdict, findings count, and the reviewed
+              range as `base_sha..head_sha` (the pre-adversary checkpoint is
+              the free base). If any later step changes the code (test
+              fixes, cleanup), the review is stale: repeat gate 2 on the new
+              diff — the recorded range must end at the commit that actually
+              merges.
 5. TEST       Run the tests fixed at PLAN (plus the suite) in the container.
               Touched something old? Re-test it. Modifying an existing test
               requires a justification in the decision log — a test is
@@ -202,7 +216,7 @@ validate; refactors/cleanups; new tests; recommended next attack. It closes
 the session record opened at start. It's the first thing read in the morning;
 without it, auditing the run costs more than supervising it would have. If
 the run dies before writing it, the next session reconstructs it (session
-flow step 2) — which works because the step journal and checkpoints were
+flow step 4) — which works because the step journal and checkpoints were
 written along the way.
 
 **Global blocker paths.** A global blocker halts code and external mutation.
