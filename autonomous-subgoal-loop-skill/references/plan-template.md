@@ -105,10 +105,12 @@ policy requires integration) · status `pending | in-progress | done | blocked`
 Each review slot is filled **when its gate completes** — not deferred to
 UPDATE, where a crash would orphan the verdict into journal prose.
 Status transitions are conditional: `done` requires evidence + both reviews
-recorded with no unresolved findings — a finding whose recorded resolution
-is a spawned follow-up subgoal counts as **resolved by transfer** (the
-record links the new subgoal id) — and `done` is set **after** the merge it
-references. `blocked` requires: diagnosis, exact state, hypotheses tried,
+recorded with no unresolved findings, and is set **after** the merge it
+references. Pre-merge gate findings are always fixed before advancing —
+**resolved by transfer** (a finding's recorded resolution = a spawned,
+linked follow-up subgoal) exists ONLY for reviews that run after their
+subject already merged: SG-0's retrospective gate 2, and post-merge/CI
+findings arriving on a closed subgoal. `blocked` requires: diagnosis, exact state, hypotheses tried,
 options, recommendation, scope (local | global).
 
 **Decision log:** date · decision · why · discarded alternative — one line
