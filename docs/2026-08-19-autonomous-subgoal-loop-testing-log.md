@@ -334,6 +334,27 @@ fix two primed reviewers demanded, docs-only and preflight-guarded;
 no locking protocol — single-session-per-repo scope). 1 rejected on source
 fidelity (explicit-defaults is the source doc's own rule, interviewable).
 
+## Cold verification of v12 → v13 (2026-08-20)
+
+A second fresh claudewo Fable instance (same unprimed prompt) on v12:
+**APPROVE-WITH-FIXES** — and the safety statement that matters: *"I found no
+route by which a compliant agent performs a destructive or
+permission-changing action without live-human confirmation; the gaps are
+ambiguity and reachability problems, not bypasses."* Its HIGH was real and
+embarrassing: crashed-subgoal recovery was mandated but had NO executable
+path (selection could never produce `recover`). v13 (`affb377`) fixes that
+(recovery wired into the dead-run pass + selection order) plus 12 more:
+heartbeat-based liveness (accepted after three independent reviewers hit the
+same wall), readiness requires the verbs the flow itself needs, PR/auto-merge
+armed only after a clean diff-review, floor scoped to external *mutations*
+(reads governed by the reading map), RUN-BLOCKED beacon for integrity
+blocks, mechanical seed-authorship criterion, marker-keyed leftover
+detection, destructive-verb minting rule, attended-probe resolution,
+content/installed readiness partition, beacon removal at repair landing.
+**Deferred, user's call:** the prose-density restructure (no content change —
+reformat dense paragraphs into rule lines) and fresh GREEN scenarios for the
+newest mechanics (crash recovery path, reconfigure flow, PR-arming rule).
+
 Residual limitations, recorded honestly: the bootstrap interview's live
 *asking* behavior is untested (answer-sheet/seed harnesses); discipline
 findings rest on n=2 baselines; the negotiation channel, attended
