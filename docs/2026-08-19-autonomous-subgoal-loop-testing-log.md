@@ -291,17 +291,29 @@ verified untouched; rerun below.) Verified on disk after the run:
   ran pre-v9, so SG-0's retrospective gate-2 — added in v9 — wasn't
   exercised; next real run covers it.)
 
-## GREEN verdict
+## GREEN verdict (final, skill v11 `dc7fde2`)
 
-All five families pass: bootstrap (trap caught), cold resume with NO skill in
-context (invariant 2 proven), dead-run recovery end-to-end, dispatch edge
-(foreign Plan → repair, no mutation), safety floor (unlisted verb refused on
-designed grounds, premises verified, blocked records complete). Codex track:
-4 full rounds + 3 micro-rounds, converged at APPROVE-WITH-FIXES with all
-fixes applied. Residual limitations, recorded honestly: the bootstrap
-interview's *asking* behavior is untested (answer-sheet harness); discipline
-findings rest on n=2 baselines; the negotiation channel and reconfigure flow
-have no dedicated GREEN scenario yet — candidates for a future test night.
+Seven GREEN scenarios pass: bootstrap (trap caught), cold resume with NO
+skill in context (invariant 2 proven), dead-run recovery end-to-end,
+dispatch edge (foreign Plan → repair, no mutation), safety floor (unlisted
+verb refused, premises verified, blocked records complete), seeded bootstrap
+(destructive seed grant refused, provenance logged, silence semantics
+honored), and stamp-divergence + SG-0 closure (intake never self-approved,
+session ran on stamped ruleset, atomic closure commits).
+
+Review track: codex rounds 1–6 plus five closure micro-rounds; a
+claude_wosch headless Fable review; and the cura-pre-26 peer panel (4
+independent Fable reviewers) with re-verification at APPROVE-WITH-FIXES —
+every accepted finding applied through v5–v11, final codex verdict
+**APPROVE, no genuine remaining HIGH contradiction**. Convergence trend:
+18 → 15 → 8 → 4 → 3 → 1 → 0 findings.
+
+Residual limitations, recorded honestly: the bootstrap interview's live
+*asking* behavior is untested (answer-sheet/seed harnesses); discipline
+findings rest on n=2 baselines; the negotiation channel, attended
+reconfigure, multi-repo channels, batching close, and v11's
+resolved-by-transfer scoping have no dedicated GREEN scenario yet —
+candidates for a future test night.
 
 Live observation while GREEN-2b runs: GREEN-2's orphaned gate-2 round-3
 adversary outlived its parent and delivered its verdict out-of-band (all
