@@ -57,8 +57,8 @@ write-ahead intent and step journal, don't restart blind.
 1. Explicit owner/user constraints outrank interview answers and defaults.
 2. Secrets are referenced by path only — never copied into the Plan, code,
    commits, or logs.
-3. **External mutations are deny-by-default.** Only operations matching the
-   Plan's allowlist — *(environment, resource type, name/prefix, allowed
+3. **External (outside-the-workspace) mutations are deny-by-default.** Only
+   operations matching the Plan's allowlist — *(environment, resource type, name/prefix, allowed
    verbs)* — are permitted.
    - External *reads* — cloning/fetching declared sources of truth and
      siblings — are governed by the reading map, not the allowlist.
