@@ -1,0 +1,358 @@
+# Design: `autonomous-subgoal-loop` skill
+
+**Date:** 2026-08-19 (v2 — amended after Codex adversarial review round 1)
+**Source:** `init-prompt-optimizado.md` (Spanish init prompt for the DRP backend autonomous agent)
+**Status:** v1 approved by Mateo 2026-08-19 (interactive brainstorm). v2 amends it
+per Codex review; the one change to an explicitly approved decision is the
+**safety floor** (narrows "everything interviewable") — flagged for Mateo.
+
+## Summary
+
+A framework skill for plan-driven autonomous agent work on a project. One entry
+point, two modes. Its central object is **the Plan** — a planning documentation
+system under `docs/` in the *target* repo, entry point `docs/PLAN.md`. Agents
+are disposable; the Plan is the persistent brain. Everything about how a given
+project runs is decided in a bootstrap **interview** and persisted into the
+Plan; the skill ships the source doc's ruleset as portable procedural defaults.
+
+## Decisions (from brainstorm)
+
+| Question | Decision |
+|---|---|
+| Lifecycle | One skill, mode by state: `docs/PLAN.md` ready → loop; absent → bootstrap; present-but-foreign/partial → repair |
+| Inputs | Interview → persisted into the Plan itself. Loop mode needs zero inputs |
+| Fixed vs configurable | Everything interviewable (framework) **except the safety floor and mechanical invariants below**; source ruleset = defaults |
+| Call syntax | Bare invocation + optional free-text focus arg; reserved keyword `reconfigure` |
+| Language | English body; Spanish original kept as reference |
+| Name | `autonomous-subgoal-loop` |
+
+## Invocation contract
+
+- `/autonomous-subgoal-loop` — invoked in the target repo. **Target resolution:**
+  the git root of the current working directory. Multi-Plan monorepos are out of
+  scope v1; if the resolved root is ambiguous or surprising, bootstrap asks (a
+  human is present at bootstrap), loop mode treats it as a global blocker.
+- Mode dispatch:
+  - No `docs/PLAN.md` at the root → **bootstrap mode**.
+  - `docs/PLAN.md` present **and loop-ready** → **loop mode**. Loop-ready is a
+    readiness contract checked on **every** invocation, not a heading check:
+    complete effective ruleset present; safety floor restated; allowlist entries
+    well-formed *(env, resource type, name/prefix, verbs)*; every subgoal has a
+    valid status and resolvable dependencies. Any check failing → repair mode.
+  - `docs/PLAN.md` present but foreign, partial, or conflicted → **repair mode**:
+    never execute subgoals from an unvalidated Plan; adopt/complete it
+    interactively if a human is present, otherwise stop with a report.
+  - Bootstrap writes `docs/PLAN.md` **last**, after its content is validated —
+    a crashed bootstrap therefore never leaves a loop-ready-looking entry point.
+- Optional free-text arg = session focus (e.g. `only subgoal 3`, `stop after two merges`).
+- Reserved keyword **`reconfigure`**: re-opens the interview (whole or named
+  section) even when the Plan exists. Ruleset changes: cannot touch the safety
+  floor; are recorded as versioned decision-log entries; pass adversarial review
+  before taking effect; and are **forbidden while any subgoal is `in-progress`**
+  — finish or park it first, so exactly one ruleset version ever governs a
+  subgoal and crash recovery is unambiguous.
+
+## Safety floor (never interviewable, never reconfigurable)
+
+1. **Explicit user/owner constraints outrank interview answers and defaults.**
+2. **Secrets are referenced by path only** — never copied into the Plan, code,
+   commits, or logs.
+3. **External (outside-the-workspace) actions are deny-by-default.** Only
+   operations matching the Plan's allowlist — entries of the form
+   *(environment, resource type, name/prefix, allowed verbs)* — are permitted.
+   An unlisted verb on a listed resource is still denied. Permission changes and
+   destructive verbs never enter an allowlist by default. **Every external-write
+   policy the interview confirms compiles into explicit allowlist entries**
+   (push, PR creation, merge, branch cleanup, cloud verbs) before the Plan is
+   ready — loop agents execute the allowlist, never infer authorization from
+   policy prose. Git branch cleanup is the one destructive default: a guarded
+   `delete-merged-feature-branch` entry (exact ref, verified merged, integration
+   branch never deletable).
+4. **Destruction is confined to the disposable workspace** (the container/local
+   sandbox). "Total local freedom" means inside that boundary only — not host
+   files, mounted secrets, or shared services.
+
+## Mechanical invariants (not interviewable)
+
+1. **`docs/PLAN.md` is the stable entry point.** Restructuring is allowed
+   anytime, provided the entry point holds and no information is lost.
+2. **The Plan persists the full effective ruleset** — every rule in force, one
+   line each, complete enough to act on. Never "defaults per skill X, plus
+   deviations": a fresh agent without the skill installed must be able to
+   resume from the Plan alone. The skill's playbook is the *text the interview
+   copies and adapts from*, not a runtime dependency.
+3. **Interview answers are persisted before any code work starts.**
+4. **Ruleset changes pass adversarial review** and land in the decision log.
+
+Everything else — including the loop shape — is a default the interview can
+override.
+
+## Bootstrap mode flow
+
+1. **Recon (read-only):** quick pass over the repo, its docs, and any obvious
+   spec/handoff files, so the interview can present discovered candidates
+   instead of asking cold.
+2. **Interview** — one topic at a time, each policy question presenting its
+   default; accepting all defaults reproduces the source doc's *procedural*
+   ruleset (facts are always project-specific and must be answered). Policies
+   authorizing external writes (auto-merge, deploys, cloud resources) are
+   confirmed explicitly — never silently bundled into "accept all defaults" —
+   and auto-merge's prerequisites (CI exists and gates the integration branch)
+   are verified, not assumed.
+3. **Deep investigation** — each declared source of truth and convention repo
+   (including how they organize docs). Answers are provisional until validated
+   here; contradictions between answers and repo reality are resolved with the
+   user or logged in Inconsistencies before the Plan is ready.
+4. **Design the Plan system** — structure is the agent's decision, informed by
+   investigation, passed through an **adversarial fresh-context subagent** with
+   verdict obligation: can a truly fresh agent resume from this? Does it scale
+   or become a monster file? Where will it rot?
+5. **Write the Plan** — ruleset section, sources-of-truth table, scope boundary,
+   verb-level allowlist, reading map, and an initial subgoal backlog with
+   verifiable acceptance criteria. `docs/PLAN.md` itself is written last.
+6. **Report** — what was decided, what was assumed ("assumption to validate"),
+   what the first executable subgoal is.
+
+## Interview schema (topics A–J; v4 added K external bar and L multi-repo — order A–I, K, L, J last)
+
+**F** = fact, must be answered; **P** = policy, has a default.
+
+| # | Topic | Asks for | Default (from source doc) |
+|---|---|---|---|
+| A | Mission | **F:** what the system is; what "done overall" looks like | — |
+| B | Sources of truth | **F:** table of source → authority *domain* (the WHAT / the current HOW / conventions / historical-only) | **P:** conflict rule: cross-domain → that domain's authority wins; intra-domain or uncovered → log in Inconsistencies with proposed resolution, decide by general engineering criteria, continue without stopping. Docs have errors and bias: judge by internal + external consistency |
+| C | Scope boundary | **F:** where our domain starts/ends; what we build; what lives outside; what to simulate and from which spec | **P:** simulate external inputs minimally; formats come from the spec source, never invented |
+| D | Hard constraints | **F:** environments + which are touchable; allowlist as *(env, resource type, name/prefix, allowed verbs)*; credentials location | **P:** dev-only; everything not allowlisted (resource **or verb**) prohibited without interpretation; credentials referenced by path only; everything runs in containers; freedom inside the container, the hard limit is only outward |
+| E | Code policy | — | **P:** no hardcoding, every parameter explicit; minimum necessary but correct and useful e2e; simple > complex; general > particular |
+| F | Strategy | — | **P:** walking skeleton first (phase 0: full e2e piping with trivial logic), then real logic feature by feature |
+| G | Testing | — | **P:** e2e first, several covering different edge cases; minimal unit/integration focused on edge cases, not coverage theater; local in container → push → CI; folder layout per convention repos |
+| H | Git flow | **F:** integration branch name | **P:** short GitHub flow; one branch = one subgoal; small checkpoint commits (message = which loop step completed); stacking only when justified, max 2 levels; never force-push the integration branch; auto-merge on green CI, no human approval (explicit-confirm policy, prerequisites verified); red CI → iterate with a NEW hypothesis per retry, else park the subgoal and return later with a fresh subagent |
+| I | Autonomy | **F:** any project-specific additions to the stop-list | **P:** decide → document → continue; never stop for style/naming/test-scope/resolvable ambiguity; closed stop-list: ① security/credentials/destructive or out-of-env ops, ② outside scope or allowlist, ③ irreversible + indecidable from any source of truth; **blocker scope**: local blocker → park subgoal + move on; global blocker (leaked secret, environment ambiguity, compromised CI, invalid allowlist, corrupt Plan) → halt all mutation, diagnose, report; before ending, revisit parked subgoals once with fresh eyes; **morning report always** — written incrementally via Plan updates so a dead run's report is reconstructed from checkpoints next session |
+| J | Loop shape & Plan properties | — | **P:** the 8-step cycle below; fresh subagent per subgoal; Plan properties: cold onboarding; anti context-rot (pointers not copies; splitting a costly file is a signal, not an option); the Plan is general — never detailed design or code, and its reading map says what NOT to read; verifiable state (`pending | in-progress | done | blocked` + dependencies); system memory with required fields (see plan-template); lossless evolution |
+
+## The default loop (topic J expanded)
+
+One subgoal = one fresh-context subagent (implementer). Adversaries are
+*separate* fresh-context subagents: they read only the artifact under review +
+the acceptance criteria + the relevant source-of-truth excerpts — never the
+implementer's reasoning. Verdict obligation: concrete findings, or an explicit
+list of what was verified and why it passes; "looks fine" is not a verdict;
+unresolved findings block advancement. If subagent isolation is unavailable,
+degrade explicitly: sequential fresh-eyes pass (re-read only from files, not
+from conversation memory) and note the limitation in the log.
+
+```
+1. BRIEF      → fresh implementer reads docs/PLAN.md → its subgoal's read list
+               (only that). Write-ahead intent as PREDICTION: "attempting X,
+               expect Y" — this is what makes surprise measurable.
+2. PLAN       → small steps; acceptance = NAMED test cases (inputs, expected
+               outcomes) PLUS the exact verification command and expected
+               result, all fixed HERE, before implementation. Changing any of
+               them later requires a logged justification + renewed plan
+               review. Use the runtime's process skills (brainstorm/plan/TDD)
+               when available; the loop's own steps carry the discipline when
+               they are not.
+               ADVERSARIAL GATE #1: fresh reviewer attacks the subgoal plan.
+3. EXECUTE    → minimum necessary, explicit, no hardcoding.
+4. ADVERSARY  → ADVERSARIAL GATE #2: fresh reviewer attacks the diff (logic,
+               edge cases, consistency with spec + conventions, hardcoding).
+5. TEST       → run the tests named at step 2 (plus suite) in the container;
+               retest anything old you touched. Modifying an existing test
+               requires a logged justification — tests are not "fixed" to pass.
+6. CLEAN      → parsimonious refactor: dead code, orphan helpers, temp samples,
+               ownerless TODOs. Leave the campsite cleaner.
+7. REFLECT    → 3–6 lines: what surprised me (observation the Plan didn't
+               predict)? Every surprise states its PROPAGATION — which Plan
+               sections/subgoals it invalidates; the next subgoal's BRIEF
+               verifies it. RECURRENCE RULE: the same surprise twice = model
+               error → increment/link the existing entry (never a third
+               identical diary line), open an Inconsistencies item, and route
+               the model change (Plan restructure, source-authority doubt)
+               through the decision log — recorded, never silent.
+8. UPDATE     → `done` ONLY with evidence executed this session: the
+               verification command fixed at PLAN ran, and its result is
+               referenced in the Plan. If that command cannot run here, the
+               subgoal is `blocked` (with diagnosis), not `done` — the
+               criterion is never silently downgraded. Update state,
+               decisions, problems; merge; clean branch (guarded allowlist op).
+```
+
+**Step journal:** each completed step appends one compact line to the subgoal's
+entry (step, key outcome, command/result if any). With checkpoint commits this
+is what makes a mid-loop crash recoverable and the morning report
+reconstructable — write-ahead at BRIEF alone is not enough.
+
+**Concurrency assumption:** one autonomous session at a time (per source doc;
+worktrees/parallel agents out of scope v1 — stated in SKILL.md). A fresh session
+finding a stale `in-progress` subgoal with no live run treats it as a crashed
+run: recover from the write-ahead intent + checkpoints, don't restart blind.
+
+## Loop mode flow
+
+Read `docs/PLAN.md` (validate loop-ready) → if the last run died mid-way,
+reconstruct its morning report from checkpoints → pick next executable subgoal
+(**selection rule:** first `pending` whose dependencies are all `done`, in
+backlog order; `blocked` requires new information to re-enter) → run the cycle
+→ repeat until no executable subgoal remains or the session-focus arg says stop
+→ revisit parked subgoals once with a fresh subagent → write the morning
+report (merged, blocked+why, decisions & assumptions-to-validate, refactors,
+new tests, recommended next attack).
+
+## Skill file layout
+
+```
+autonomous-subgoal-loop-skill/
+  SKILL.md                 # frontmatter, dispatch, safety floor, invariants, call syntax (lean)
+  references/
+    interview.md           # full interview schema + defaults (topics A–L)
+    loop-playbook.md       # default loop + autonomy + git flow, full text the interview adapts
+    plan-template.md       # Plan properties + required record fields + compact-ruleset format
+```
+
+`plan-template.md` carries required fields: subgoal (id, objective 1–2 lines,
+read-list, acceptance criteria, status, dependencies), decision log (date,
+decision, why, discarded alternative — one line; includes assumptions to
+validate), lessons/surprises (append-only: expectation vs observation vs
+propagation), inconsistencies (source, description, proposed resolution,
+status), open problems, reading map (paths + what NOT to read; credentials
+path only).
+
+Frontmatter description (triggering conditions only, per writing-skills SDO):
+*"Use when starting or resuming autonomous agent work on a project —
+overnight/unattended runs, plan-driven multi-session development, bootstrapping
+a docs/PLAN.md planning system, or executing subgoals from an existing Plan."*
+
+Deployment: copy `autonomous-subgoal-loop-skill/` →
+`~/.claude-cura/skills/autonomous-subgoal-loop/` (repo convention).
+
+## Testing plan (writing-skills TDD)
+
+Five scenario families, baseline (RED) before the skill exists, then with the
+skill (GREEN), in a mock target repo. Baseline behavior is *observed and
+documented verbatim*, not assumed.
+
+1. **Bootstrap:** mock repo + "set up autonomous overnight work".
+2. **Cold resume:** fresh agent + the produced Plan only — full rule
+   compliance, not merely identifying the next subgoal. Variant: stale
+   `in-progress` from a crashed run.
+3. **Discipline under pressure:** done-without-evidence temptation; adversary
+   "looks fine" temptation. Multiple reps (single samples lie).
+4. **Dispatch edge cases:** foreign/partial `docs/PLAN.md` → must route to
+   repair, not loop.
+5. **Safety-floor / allowlist boundary:** (a) owner constraint says dev-only,
+   interview answer attempts prod → refuse and record; (b) loop agent attempts
+   an unlisted resource; (c) loop agent attempts an unlisted *verb* on a listed
+   resource → both denied. (Production is an environment policy, not safety
+   floor per se — the refusal test is anchored to the owner constraint.)
+
+REFACTOR: capture rationalizations verbatim, add counters, re-test.
+
+## Appendix: Codex review round 1 — disposition
+
+Verdict was REWORK (18 findings). Dispositions:
+
+| # | Finding (short) | Disposition |
+|---|---|---|
+| 1 | Invariant core permits unsafe ruleset | **Adapted**: safety floor added (secrets, deny-by-default external actions, destruction boundary, user constraints outrank). Evidence-backed `done` stays a default, not an invariant — quality discipline, not safety; projects may legitimately run lighter loops |
+| 2 | Allowlist loses verb restrictions | **Accepted**: allowlist = (env, type, name/prefix, verbs) |
+| 3 | "Plan alone" vs "defaults live in skill" | **Accepted**: Plan persists full effective ruleset; playbook is copy-source, not dependency |
+| 4 | File existence invalid discriminator | **Adapted**: loop-ready check (ruleset section present) + repair mode + write-entry-point-last; no schema_version machinery |
+| 5 | Target resolution undefined | **Adapted**: git root of cwd; monorepo multi-Plan out of scope v1 |
+| 6 | No leases/CAS for concurrency | **Rejected as scoped**: source explicitly scopes to one agent at a time; documented assumption + stale in-progress recovery instead. Leases/CAS is infrastructure, not prose-skill material |
+| 7 | Adversarial review weakened | **Accepted**: two gates (plan, diff) + verdict schema + findings block |
+| 8 | Fresh-context mechanism/fallback | **Adapted**: roles + brief contents specified; sequential fresh-eyes fallback with logged limitation (blocking execution outright is disproportionate) |
+| 9 | Dangerous defaults w/o validation | **Adapted**: external-write policies are explicit-confirm at interview; auto-merge prerequisites verified; local freedom = container only |
+| 10 | Global vs local blockers | **Accepted** |
+| 11 | Facts frozen before investigation | **Accepted**: recon → interview → investigate → validate |
+| 12 | "Defaults reproduce source" false | **Accepted**: claim narrowed to procedural defaults |
+| 13 | Tests retrofittable | **Accepted**: named test cases at PLAN step |
+| 14 | Selection/termination not computable | **Adapted**: dependencies + deterministic selection rule; no lease machinery |
+| 15 | Report can't survive dead run | **Accepted**: incremental checkpoints + reconstruction |
+| 16 | Memory schemas weakened | **Accepted**: required fields in plan-template.md + Plan-is-general boundary + do-not-read map |
+| 17 | Reconfigure unsafe | **Adapted**: can't touch safety floor; versioned + adversarial review + next-subgoal retroactivity. Full transaction protocol rejected as disproportionate |
+| 18 | Testing plan gaps | **Adapted**: +2 families (dispatch edges, safety override), multi-rep discipline, observed-not-assumed baselines. Full crash-injection matrix rejected as disproportionate for a prose skill |
+
+## Appendix: Codex review round 2 — disposition
+
+Round 2 conceded #6/#8 rejections and closed #2, #3, #5, #7, #10, #11, #14,
+#16-core. Verdict REWORK on 8 remaining findings — all accepted (some in
+simplified single-agent form) and folded into the sections above:
+
+| # | Finding (short) | Disposition |
+|---|---|---|
+| R2-1 | Loop-ready was a heading check | **Accepted**: readiness contract checked on every invocation |
+| R2-2 | Confirmed policies ≠ allowlist entries | **Accepted**: policies compile into allowlist entries before readiness; family-5 tests re-anchored (owner constraint; unlisted resource; unlisted verb) |
+| R2-3 | Destruction floor vs branch deletion | **Accepted**: guarded `delete-merged-feature-branch` allowlist entry; integration branch never deletable |
+| R2-4 | Superpowers-per-step lost from defaults | **Adapted**: PLAN step defaults to runtime process skills when available; loop steps carry the discipline otherwise |
+| R2-5 | Verification command retrofittable | **Accepted**: exact command + expected result fixed at PLAN; later changes need logged justification + renewed plan review |
+| R2-6 | No per-step durability | **Adapted**: one-line step journal per completed step + checkpoint commits; recovery tested from one mid-loop crash boundary |
+| R2-7 | Reconfigure vs in-flight subgoal | **Accepted** (simple form): reconfigure forbidden while any subgoal is `in-progress` |
+| R2-8 | Recurrence rule vs append-only memory | **Accepted**: increment/link entries, route to Inconsistencies, authority changes via decision log — recorded, never silent |
+
+## Amendment (2026-08-19, Mateo): architecture negotiation channel
+
+The planned approach is explicitly not written in stone: an implementer that
+finds a better way aligned with the objective proposes it; implementer and a
+fresh adversary talk and converge; agreement is recorded in the decision log,
+the updated execution plan gets a fresh gate-1 review (final artifact only),
+then execution proceeds. No agreement → implement as planned only if the
+original plan remains gate-1-approved (an unresolved finding still blocks),
+parking the proposal for the morning. Channel scope is implementation
+approach only: acceptance/verification changes keep their logged-justification
++ renewed-gate-1 path; ruleset/scope/objective/allowlist changes go through
+`reconfigure`; safety floor and owner constraints are outside every channel.
+Encoded in loop-playbook.md ("The architecture is not written in stone");
+codex micro-round REWORK findings (unbounded scope, verdict bypass, skipped
+gate) accepted and folded in.
+
+## Appendix: v4→v6 — three-track review of the field-adoption changes
+
+v4 (field-review adoption) was reviewed by three independent tracks: codex
+round 5, a claude_wosch headless Fable run, and the cura-pre-26 peer session
+(4 independent Fable reviewers + verification + dedup). All three converged
+REWORK **scoped to the v4 additions** (the previously-converged core held;
+cura-pre-26 explicitly verified the T1 wiring sound). Consolidated fixes
+landed as v5 (`d836cab`) and v6 (`943a8e2`); highlights:
+
+- **Seed authorization bounded** (all three tracks): destructive/permission
+  verbs are never seed-grantable — floor #3 now states a seed can never
+  substitute for live-human confirmation; seed provenance (commit hash +
+  author) logged; unattended fact-gap = hard stop (BOOTSTRAP-BLOCKED.md);
+  attended+seed = item-by-item fast-path confirmation.
+- **Multi-repo made runnable without floor violations**: hub channels
+  compile into allowlist entries (readiness-checked); per-channel merge
+  policy; immutable per-session status files pushed just before the closing
+  report; merge-first ADR number claims; hub copy canonical with spoke
+  intake verdicts converging through a hub channel; hub runs the skill with
+  a curation-only Plan.
+- **Stamp intake defined**: hash formula + intake record; pending rules
+  (stamped ruleset governs; most-restrictive safety; recover/park first; no
+  new subgoals); unattended intake never self-approves (strict-superset
+  tightening exception; loosened floor = global blocker); rejected hashes
+  never re-fire.
+- **Pointer → tagged next-action** (`recover` / `execute — cmd` / `none —
+  reason`) defined as a cache the backlog outranks; terminal states pass
+  readiness.
+- **Session-open** made step 2 in one commit after a read-only preflight;
+  ordering contradiction removed.
+- **Subgoal zero close mechanics** (evidence can't predate its own merge):
+  installs in-progress; first loop session closes with the observed SHA;
+  design review fills both slots; one-time merge-without-ci allowance.
+- **Plan-state lane**: `push-plan-state` allowlist verb on integration for
+  docs-only commits, exempt from the PR flow; review slots record
+  `base_sha..head_sha` ranges; intra-batch deps satisfied at gate-2 pass.
+- **Topic D de-restated** (floor content removed from an overridable block);
+  smoke commands constrained read-only; interim-proceed banned on stop-list
+  matters; duplicated prose deduped to its authority file.
+
+## Appendix: RED-phase calibration (2026-08-19)
+
+Baseline runs (see the testing log) showed evidence-faking does NOT reproduce
+at n=2 with claude-fable-5 subagents; the reproducing failures are structural:
+no interview while a human was available, unilaterally frozen over-conservative
+stop policy, nonstandard entry point, uncommitted work "for morning review"
+(rep-dependent — variance), no adversarial gate, no park/blocked vocabulary, no
+propagation routing. Per writing-skills "Match the Form to the Failure", the
+skill is therefore written as positive recipes + required template slots, not
+prohibition/rationalization tables; the evidence rule stays as a crisp contract
+line, not a bulletproofed discipline section.
