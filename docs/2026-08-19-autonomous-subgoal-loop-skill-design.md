@@ -305,6 +305,46 @@ Encoded in loop-playbook.md ("The architecture is not written in stone");
 codex micro-round REWORK findings (unbounded scope, verdict bypass, skipped
 gate) accepted and folded in.
 
+## Appendix: v4→v6 — three-track review of the field-adoption changes
+
+v4 (field-review adoption) was reviewed by three independent tracks: codex
+round 5, a claude_wosch headless Fable run, and the cura-pre-26 peer session
+(4 independent Fable reviewers + verification + dedup). All three converged
+REWORK **scoped to the v4 additions** (the previously-converged core held;
+cura-pre-26 explicitly verified the T1 wiring sound). Consolidated fixes
+landed as v5 (`d836cab`) and v6 (`943a8e2`); highlights:
+
+- **Seed authorization bounded** (all three tracks): destructive/permission
+  verbs are never seed-grantable — floor #3 now states a seed can never
+  substitute for live-human confirmation; seed provenance (commit hash +
+  author) logged; unattended fact-gap = hard stop (BOOTSTRAP-BLOCKED.md);
+  attended+seed = item-by-item fast-path confirmation.
+- **Multi-repo made runnable without floor violations**: hub channels
+  compile into allowlist entries (readiness-checked); per-channel merge
+  policy; immutable per-session status files pushed just before the closing
+  report; merge-first ADR number claims; hub copy canonical with spoke
+  intake verdicts converging through a hub channel; hub runs the skill with
+  a curation-only Plan.
+- **Stamp intake defined**: hash formula + intake record; pending rules
+  (stamped ruleset governs; most-restrictive safety; recover/park first; no
+  new subgoals); unattended intake never self-approves (strict-superset
+  tightening exception; loosened floor = global blocker); rejected hashes
+  never re-fire.
+- **Pointer → tagged next-action** (`recover` / `execute — cmd` / `none —
+  reason`) defined as a cache the backlog outranks; terminal states pass
+  readiness.
+- **Session-open** made step 2 in one commit after a read-only preflight;
+  ordering contradiction removed.
+- **Subgoal zero close mechanics** (evidence can't predate its own merge):
+  installs in-progress; first loop session closes with the observed SHA;
+  design review fills both slots; one-time merge-without-ci allowance.
+- **Plan-state lane**: `push-plan-state` allowlist verb on integration for
+  docs-only commits, exempt from the PR flow; review slots record
+  `base_sha..head_sha` ranges; intra-batch deps satisfied at gate-2 pass.
+- **Topic D de-restated** (floor content removed from an overridable block);
+  smoke commands constrained read-only; interim-proceed banned on stop-list
+  matters; duplicated prose deduped to its authority file.
+
 ## Appendix: RED-phase calibration (2026-08-19)
 
 Baseline runs (see the testing log) showed evidence-faking does NOT reproduce
