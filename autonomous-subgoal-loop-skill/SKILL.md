@@ -36,8 +36,8 @@ read `references/multi-repo.md`.
 | Present but foreign, partial, or failing readiness | **Repair**: follow the repair recipe — adopt/complete with the human if present; in an unattended run, stop with a report | `references/plan-template.md` |
 
 The `reconfigure` argument takes precedence over this table: it runs the
-reconfigure flow (requires a ready Plan and no `in-progress` subgoal — finish
-or park first). Attended vs unattended is decided by one predicate: a human is
+reconfigure flow defined in `references/loop-playbook.md` (attended only;
+requires a ready Plan and no `in-progress` subgoal — finish or park first). Attended vs unattended is decided by one predicate: a human is
 present if the invocation is interactive and a human actually responds;
 otherwise treat the run as unattended.
 
@@ -62,10 +62,15 @@ write-ahead intent and step journal, don't restart blind.
    infer authorization from policy prose. Permission changes and destructive
    verbs never enter an allowlist by default — each requires a live human's
    explicit confirmation at interview; a seed file can never substitute for
-   that confirmation. The floor's sole pre-Plan exception: a blocked
-   bootstrap may push its `BOOTSTRAP-BLOCKED.md` beacon — a docs-only commit
-   to the integration branch, nothing else — so the blocked state can reach
-   a human.
+   that confirmation. **Bootstrap authorization:** before the Plan exists,
+   the live human's (or seed's) confirmed answers ARE the authorization —
+   once compiled and confirmed, the candidate allowlist's git entries govern
+   the bootstrap increment itself. The Plan *records* that authorization; a
+   candidate Plan never authorizes its own installation. The floor's sole
+   unauthorized-state exception: a blocked bootstrap may push its
+   `BOOTSTRAP-BLOCKED.md` beacon — a docs-only commit to the integration
+   branch (or the default branch if that fact is the gap), nothing else — so
+   the blocked state can reach a human.
 4. Destruction is confined to the disposable workspace (container/sandbox).
    Host files, mounted secrets, and shared services are outside that boundary
    even when reachable from inside it. The only destructive verb with a

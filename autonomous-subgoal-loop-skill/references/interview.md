@@ -10,9 +10,11 @@ seed facts-pack — a kickoff/handoff file that pre-answers the interview
 (mission, sources, scope, constraints, policies) — bootstrap may run
 unattended from it, under these conditions:
 
-- The seed covers every substantive fact topic (A–D, H); silence there is a
-  gap. Silence on a yes/no or if-any fact (I additions, K, L) reads as "no",
-  logged as "answered by seed <path> (by omission) — assumption to validate".
+- The seed answers every fact topic **explicitly, including the yes/no ones**
+  — I additions ("none"), K ("no external bar" or the bar), L ("single
+  repo" or the repo set). A one-word answer costs the seed author nothing; an
+  omission silently drops stop conditions or delivery obligations, so any
+  silence is a gap.
 - Ordinary external-write policies are enabled only where the seed authorizes
   them explicitly. **Destructive and permission-changing verbs are never
   seed-grantable**: the seed may propose them, and they stay out of the
@@ -166,9 +168,10 @@ human can override any of it)
   code from N; max 2 levels; rebase onto integration when N merges;
   force-push only your own stack branches, never the integration branch.
   Auto-merge: CI green = merge, no human approval — a PR waiting overnight is
-  a dead PR. Red CI: iterate with a NEW hypothesis each retry; out of
-  hypotheses → park the subgoal (`blocked` + diagnosis) and return later in
-  the session with a fresh subagent.
+  a dead PR. Red CI: iterate with a NEW hypothesis each retry, within a
+  retry budget (default: 5 attempts per subgoal per session — interviewable);
+  out of hypotheses or budget → park the subgoal (`blocked` + diagnosis,
+  attempts recorded) and return later in the session with a fresh subagent.
 
 ### I. Autonomy
 - **F:** Project-specific additions to the stop-list, if any.
@@ -178,9 +181,11 @@ human can override any of it)
   continue); failing tests or red CI (iterate); two viable options (pick the
   simpler, more reversible one, log it as "assumption to validate");
   information deducible by reading more (read more). Stop ONLY for the closed
-  list: ① security — exposing secrets, permission changes, destructive or
-  out-of-environment operations; ② outside scope or allowlist; ③ irreversible
-  + indecidable from every source of truth. **Blocker scope:** a local
+  list: ① security — exposing secrets, permission changes, or destructive /
+  out-of-environment operations that are NOT explicitly allowlisted (a
+  confirmed guarded verb whose preflight passes proceeds; it was already
+  human-approved); ② outside scope or allowlist; ③ irreversible +
+  indecidable from every source of truth. **Blocker scope:** a local
   blocker parks its subgoal (`blocked` with plan-template.md's required
   fields) and the run continues with the next executable subgoal; a global
   blocker

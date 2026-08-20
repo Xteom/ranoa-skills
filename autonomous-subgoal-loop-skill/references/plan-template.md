@@ -2,8 +2,11 @@
 
 No fixed file layout — structure is designed at bootstrap and restructured
 whenever growth demands (split files under `docs/`, create indexes, whatever
-the project needs). What is fixed are the **properties**, **required
-records**, and the **readiness contract** below. When in doubt about
+the project needs). The **properties**, **required records**, and
+**readiness contract** below are the defaults topic J may reshape like any
+other (each reshaping a dated ruleset override; readiness then checks the
+shape the effective ruleset declares) — only the safety floor and SKILL.md's
+mechanical invariants are beyond reshaping. When in doubt about
 structure: what does the *next fresh agent* need to read for its subgoal?
 Optimize for that reader. The Plan exists for them, not to look complete.
 
@@ -50,10 +53,12 @@ rejected hash is recorded so it never re-fires intake.
 
 **Next action:** one tagged line — `recover SG-x` (in-progress/dead-run
 state) · `execute SG-y — <exact acceptance command>` · `none —
-complete | dependency-blocked | focus-exhausted | global-blocker` — kept
-accurate **in the same commit that changes subgoal state**. It is a cache of
-the selection rule, never an authority: on mismatch the backlog wins and the
-mismatch is logged as an inconsistency.
+complete | dependency-blocked | global-blocker` — kept accurate **in the
+same commit that changes subgoal state**. It is project-level state: a
+session that stops early for its focus records `focus-exhausted` in its own
+session record, never here — the next action keeps naming the globally
+executable subgoal. It is a cache of the selection rule, never an authority:
+on mismatch the backlog wins and the mismatch is logged as an inconsistency.
 
 **Coverage matrix** (required whenever topic K declared an external bar):
 records the bar's source + revision/hash and enumerates its criteria with
@@ -164,6 +169,9 @@ that the content lives at `docs/PLAN.md` at the git root, marker first line.
 Any failure → repair mode:
 
 - [ ] Marker present as first line
+- [ ] The Plan is committed on the declared integration branch — a
+      content-valid Plan present only in the worktree or an unmerged branch
+      is a crashed bootstrap (repair), not loop-ready
 - [ ] Mission, sources-of-truth table, and scope boundary present
 - [ ] Ruleset passes the completeness contract (a line per topic A–L + safety
       floor + invariants; overrides dated)
@@ -213,11 +221,32 @@ Any failure → repair mode:
 2. **Preserve:** never overwrite or delete existing content; a foreign file's
    fate (relocate/rename) is the human's call.
 3. **If unattended:** stop with a report (what's wrong, options,
-   recommendation). Mutate nothing — with one carve-out: if no beacon exists
-   yet, committing and pushing `BOOTSTRAP-BLOCKED.md` (the floor's sole
-   pre-Plan exception) IS the report.
+   recommendation). Mutate nothing — with one carve-out **for the
+   bootstrap-leftovers class only** (no `docs/PLAN.md` installed): if no
+   beacon exists yet, committing and pushing `BOOTSTRAP-BLOCKED.md` (the
+   floor's sole pre-Plan exception) IS the report. Plan-present repair
+   states report out-of-band per loop-playbook's global-blocker path.
 4. **If attended:** interview only what's missing or contradicted, compile,
    pass the adversarial design review, re-run readiness, then install.
+
+## Example skeleton (non-normative — structure remains yours to design)
+
+```markdown
+<!-- plan: autonomous-subgoal-loop -->
+# PLAN — <system>
+Mission: <what it is; done overall>.               Skill stamp: <hash> (<date>)
+Next action: execute SG-2 — podman ... pytest tests/ -x
+## Ruleset v3 (see decision log for versions)
+R1 [A] ... R2 [B] sources: <table below>; conflict rule: ...   (one line per
+topic A–L, + floor restatement, + invariants)
+## Sources of truth | ## Scope | ## Allowlist (exhaustive)
+## Reading map (ordered; then do-not-read; credentials path only; smokes)
+## Backlog → docs/plan/subgoals.md   (subgoal records, coverage matrix)
+## Memory  → docs/plan/memory.md     (decisions, lessons, inconsistencies,
+                                      problems, sessions + reports index)
+```
+
+A single-file Plan inlining those sections is equally valid while small.
 
 ## Entry-point wiring
 

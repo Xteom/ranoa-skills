@@ -1,5 +1,23 @@
 # Loop mode: executing subgoals
 
+## The reconfigure flow (invoked as `/skill reconfigure [section]`)
+
+Attended only; requires a ready Plan and no `in-progress` subgoal (finish or
+park first — parking here means `blocked` with reason "suspended for
+reconfigure"). Sequence:
+
+1. Re-interview the named section(s) per interview.md — or, for a pending
+   skill-stamp intake, review the intake record's semantic diff.
+2. Destructive/permission verbs re-confirm live, item by item, as at
+   bootstrap. The safety floor is not on the table.
+3. Adversarial review of the proposed ruleset change (fresh reviewer,
+   verdict obligation). Rejection → dated decision-log entry recording the
+   rejected proposal (and skill hash, if an intake), nothing else changes.
+4. Acceptance → recompile affected ruleset lines and allowlist entries;
+   stamp, ruleset lines, and the versioned decision entry land **atomically
+   in one commit**; changes take effect from the next subgoal.
+5. Re-run the readiness contract; then resume normal dispatch.
+
 This is the default playbook. The Plan's ruleset is authoritative — where the
 project's interview changed a rule, the Plan wins. Read the Plan's ruleset
 first and follow *it*, using this file for the mechanics it doesn't restate.
@@ -125,14 +143,20 @@ Never silent deviation, never implement-and-keep-debating.
 
 ```
 1. BRIEF      Fresh implementer reads docs/PLAN.md: state, lessons flagged for
-              this subgoal, its read list (ONLY that). Before touching code,
+              this subgoal, its read list — the INITIAL boundary; expanding
+              it is allowed and logged (path + why, one journal line), and a
+              recurring expansion updates the subgoal's read list for the
+              future. Before touching code,
               write-ahead the intent as a PREDICTION in the Plan:
               "in-progress: attempting X, expect Y" — committed as its own
               dedicated commit ending this step (the cleanest crash-recovery
               artifact a run leaves). Plan-state writes — write-ahead, step
               journal, session records — land on the INTEGRATION branch;
               only code rides the feature branch, so a deleted or unmerged
-              branch never strands the Plan's memory of it. If the branch
+              branch never strands the Plan's memory of it. (Mechanism:
+              a second worktree on integration for Plan-state, or commit
+              code first and switch clean — never mix code into a
+              plan-state commit or carry uncommitted work across a switch.) If the branch
               batches subgoals into one coherent increment, the
               justification lives here, and the batched subgoals close
               together at the increment's merge — evidence per subgoal, all
@@ -153,17 +177,10 @@ Never silent deviation, never implement-and-keep-debating.
               ADVERSARIAL GATE 1: fresh reviewer attacks the execution plan.
               Record verdict + findings→resolutions (or the explicit verified
               list) in the subgoal's plan-review slot.
-3. EXECUTE    Minimum necessary. Explicit parameters, no magic values.
-4. ADVERSARY  ADVERSARIAL GATE 2: fresh reviewer attacks the diff — logic,
-              edge cases, consistency with spec and conventions, hardcoding.
-              Findings are fixed before advancing. Record in the subgoal's
-              diff-review slot: verdict, findings count, and the reviewed
-              range as `base_sha..head_sha` (the pre-adversary checkpoint is
-              the free base). If any later step changes the code (test
-              fixes, cleanup), the review is stale: repeat gate 2 on the new
-              diff — the recorded range must end at the commit that actually
-              merges.
-5. TEST       Run the tests fixed at PLAN (plus the suite) in the container.
+3. EXECUTE    First run the tests named at PLAN and observe them fail (red
+              confirmed in the container) — then implement the minimum
+              necessary. Explicit parameters, no magic values.
+4. TEST       Run the tests fixed at PLAN (plus the suite) in the container.
               Touched something old? Re-test it. Modifying an existing test
               requires a justification in the decision log — a test is
               evidence, not an obstacle. Tests must BIND: ask what a broken
@@ -175,9 +192,20 @@ Never silent deviation, never implement-and-keep-debating.
               BEFORE ANY DESTRUCTIVE VERIFICATION (mutation runs, checkouts,
               resets): uncommitted fixes are indistinguishable from the
               mutations you're about to revert.
-6. CLEAN      Parsimonious refactor before closing: dead code, orphan
+5. CLEAN      Parsimonious refactor before review: dead code, orphan
               helpers, temporary samples, ownerless TODOs, unused logic
-              branches. Leave the campsite cleaner than you found it.
+              branches. Leave the campsite cleaner than you found it. Re-run
+              the suite after cleaning.
+6. ADVERSARY  ADVERSARIAL GATE 2, on the FINAL head: fresh reviewer attacks
+              the diff — logic, edge cases, consistency with spec and
+              conventions, hardcoding. Findings are fixed before advancing
+              (then re-test and re-review the delta). Record in the
+              subgoal's diff-review slot: verdict, findings count, and the
+              reviewed range as `base_sha..head_sha` (the branch point is
+              the base; the reviewed head must be the branch's final code
+              commit). Batching: a per-subgoal gate 2 may end at that
+              subgoal's last commit, plus one increment-level gate 2 over
+              the whole `base..head` before merge.
 7. REFLECT    3–6 lines: what did I learn — and what SURPRISED me (an
               observation the Plan didn't predict)? Every surprise states its
               PROPAGATION: which Plan sections/subgoals it invalidates; the
@@ -186,10 +214,13 @@ Never silent deviation, never implement-and-keep-debating.
               existing entry, open an Inconsistencies item, and route the
               model change (restructure, source-authority doubt) through the
               decision log. Recorded, never silent.
-8. UPDATE     Merge first (per the git policy), then close: fill the
-              subgoal's evidence slot — date, the verification command fixed
-              at PLAN as actually run, its actual result, merge SHA/PR — and
-              only then set `done`. The status transition and its evidence
+8. UPDATE     Merge first (per the git policy) and verify the integrated
+              tree matches the reviewed head (squash/merge commits get new
+              SHAs — compare trees, and record reviewed head and merge SHA
+              as separate fields). Then close: fill the subgoal's evidence
+              slot — date, the verification command fixed at PLAN as
+              actually run, its actual result, reviewed head + merge SHA/PR
+              — and only then set `done`. The status transition and its evidence
               land in the SAME commit, and evidence is written from the
               result, never in anticipation of one. Closing PRESERVES the
               write-ahead prediction: add the delivered note beside it (never
