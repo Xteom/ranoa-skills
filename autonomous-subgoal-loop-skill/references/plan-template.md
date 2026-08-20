@@ -186,15 +186,24 @@ Any failure → repair mode:
 - [ ] Portable session prompt exists, under 4,000 chars, carries its
       lifecycle line, and its safety digest defers ("the binding floor is
       the Plan's restatement; on conflict the Plan wins")
-- [ ] The Plan's safety-floor restatement semantically matches SKILL.md's
-      floor — a drifted or loosened restatement is a readiness failure
+- [ ] The Plan's safety-floor restatement semantically matches the floor of
+      the **stamped** skill version — a drifted or loosened restatement is a
+      readiness failure; a delta between stamped and *loaded* skill is the
+      intake's business, never a readiness failure
 - [ ] No merge-conflict markers, no truncation
 
 ## Repair recipe
 
 1. **Classify:** foreign file (no marker) · crashed bootstrap (marker, fails
    content checks, no sessions) · damaged/incomplete Plan (marker, history
-   present) — check for write-ahead intents, step journals, session lines.
+   present) · **bootstrap leftovers without an installed Plan** (entry-point
+   pointer, START file, consumed seed, or beacon present; no `docs/PLAN.md`)
+   — check for write-ahead intents, step journals, session lines.
+   For the leftovers class: unattended → stop with a report (pushing the
+   beacon if absent, per the floor's sole pre-Plan exception); attended →
+   inventory the leftovers, resume the interview/seed from what's already
+   recorded, and land the atomic bootstrap increment — a consumed seed's
+   external-write grants are never re-applied without re-confirmation.
 2. **Preserve:** never overwrite or delete existing content; a foreign file's
    fate (relocate/rename) is the human's call.
 3. **If unattended:** stop with a report (what's wrong, options,

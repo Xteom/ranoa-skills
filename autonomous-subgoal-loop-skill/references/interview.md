@@ -26,10 +26,10 @@ unattended from it, under these conditions:
 Gaps: interview the human if present. Unattended, a gap on a substantive
 fact topic is a **hard stop** — facts are never guessed: commit a
 `BOOTSTRAP-BLOCKED.md` naming the missing topics and stop with a report
-(likewise when no seed exists at all). Committing and pushing that beacon to
-the integration remote is authorized pre-Plan — it is the one write a
-blocked bootstrap may make, and an unpushed beacon in an ephemeral sandbox
-reaches no one. When a policy's verb wasn't confirmed (no live human), the
+(likewise when no seed exists at all). Committing and pushing that beacon is
+the safety floor's sole pre-Plan exception (SKILL.md floor #3) — a docs-only
+commit to the integration branch, because an unpushed beacon in an ephemeral
+sandbox reaches no one. When a policy's verb wasn't confirmed (no live human), the
 compiled ruleset line **omits that verb** and notes it pending confirmation
 — the topic-H flow compiles as "merge → log cleanup-pending → re-branch"
 rather than instructing a denied delete. A seed should be topic-keyed so
@@ -71,8 +71,11 @@ interview, not a bypass of it.
    itself as **subgoal zero**, which installs as `in-progress` with its
    write-ahead: evidence citing its own merge SHA cannot exist before the
    merge does. The first loop session closes it (session flow step 6) with the
-   *observed* bootstrap-merge SHA; the step-4 design review fills both of its
-   review slots; a merge that predates CI (nothing to be green yet) uses a
+   *observed* bootstrap-merge SHA; the step-4 design review fills gate 1,
+   and gate 2 runs retrospectively at that closure — a fresh reviewer over
+   the actual bootstrap increment (`base..merge`, Plan + wiring); findings
+   spawn follow-up subgoals, they never reopen the install. A merge that
+   predates CI (nothing to be green yet) uses a
    one-time merge-without-ci allowance the human or seed authorized. **The
    Plan reaches the integration branch before any code branch is cut.** Run
    the readiness contract's **content checks** on the candidate, then land

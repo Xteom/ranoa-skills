@@ -62,7 +62,10 @@ write-ahead intent and step journal, don't restart blind.
    infer authorization from policy prose. Permission changes and destructive
    verbs never enter an allowlist by default — each requires a live human's
    explicit confirmation at interview; a seed file can never substitute for
-   that confirmation.
+   that confirmation. The floor's sole pre-Plan exception: a blocked
+   bootstrap may push its `BOOTSTRAP-BLOCKED.md` beacon — a docs-only commit
+   to the integration branch, nothing else — so the blocked state can reach
+   a human.
 4. Destruction is confined to the disposable workspace (container/sandbox).
    Host files, mounted secrets, and shared services are outside that boundary
    even when reachable from inside it. The only destructive verb with a
