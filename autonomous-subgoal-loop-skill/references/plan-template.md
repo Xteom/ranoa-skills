@@ -86,6 +86,7 @@ agent without the skill resumes from this section alone.
 (git, feature-branch, sg-*,   push)
 (git, feature-branch, sg-*,   delete-merged-feature-branch)  # verb's preflight: ref matches prefix, fully merged into integration, never the integration branch
 (git, pull-request,   →dev,   create|merge-on-green-ci)
+(git, integration-branch, docs/**, push-plan-state)  # Plan-state only (write-ahead, journals, session records) — exempt from the PR flow; code never rides these commits
 ```
 Deletion and permission-changing verbs appear only with the human's explicit
 interview confirmation, and only as their guarded canonical verb — a bare
@@ -136,11 +137,10 @@ without a deferring pointer are how summaries drift into law.
 **Sessions & morning reports:** each session opens a session line (id, date,
 focus, status `running`) **and its reports-index row in the same commit,
 after only the read-only integrity preflight** (loop-playbook session flow),
-and is closed by its morning report (what merged; what's blocked and why;
-decisions and assumptions to validate; refactors; new tests; recommended next
-attack). Any `running` session without a closing report — regardless of
-subgoal states — means a dead run: a later session reconstructs its report
-from step journals, checkpoints, and git/PR state.
+and is closed by its morning report (contents per loop-playbook.md). Any
+`running` session without a closing report — regardless of subgoal states —
+means a dead run: a later session reconstructs its report per
+loop-playbook.md.
 
 **Multi-repo records** (required whenever topic L is declared): coordination
 manifest — repo URLs, roles, branches, owned path domains, convention-setter
@@ -182,6 +182,9 @@ Any failure → repair mode:
       their provenance/authority pointers
 - [ ] Session records well-formed (a dangling `running` session is not a
       readiness failure — it triggers dead-run reconstruction in loop mode)
+- [ ] Portable session prompt exists, under 4,000 chars, carries its
+      lifecycle line, and its safety digest defers ("the binding floor is
+      the Plan's restatement; on conflict the Plan wins")
 - [ ] No merge-conflict markers, no truncation
 
 ## Repair recipe

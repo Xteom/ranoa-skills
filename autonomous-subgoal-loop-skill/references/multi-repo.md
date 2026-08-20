@@ -39,7 +39,8 @@ green; inconsistency/ADR/contract → human-gated.
 
 1. **Status** — one dated file per session at `status/<spoke>/<session>.md`
    (immutable per-session files, so parallel PRs never conflict at EOF),
-   batch-merge exempt from one-topic-per-PR. Pushing it happens immediately
+   batch-merge exempt from the one-increment-per-PR rule (topic H). Pushing
+   it happens immediately
    BEFORE the closing morning-report commit, and the report's last line
    records the status PR — the local report stays the spoke's final write.
    Reminders alone failed in the field (a spoke reached its 10th subgoal
@@ -48,8 +49,11 @@ green; inconsistency/ADR/contract → human-gated.
    spoke's interim resolution.
 3. **ADR proposal.** Numbering: the claim is a one-line registry-only PR
    merged FIRST (the merge conflict is the lock); the ADR file PR references
-   the merged claim.
+   the merged claim. Protocol/skill-change proposals travel this channel too.
 4. **Contract change.**
+
+The hub repo runs this skill like any repo: its own Plan tracks hub curation
+work (contracts, ADR registry, bar upkeep) — never spoke work.
 
 Each spoke's `docs/PLAN.md` remains the only tracker of its work. The hub
 never mirrors spoke subgoals.
@@ -57,10 +61,11 @@ never mirrors spoke subgoals.
 ## Escalation is non-blocking
 
 Every escalation into a human-gated channel carries an **interim decision the
-spoke proceeds on** ("use the shared identity while holding to the narrower
-committed policy" is the model). BRIEF re-checks pending escalations each
-session; a stale escalation is re-raised in the status append, never silently
-dropped and never waited on.
+spoke proceeds on** ("keep building against contract v1 while proposing the
+v2 field rename" is the model). Interim-proceed **never applies to stop-list
+matters** — permission scope, credentials, destructive operations stop, full
+stop. BRIEF re-checks pending escalations each session; a stale escalation is
+re-raised in the status file, never silently dropped and never waited on.
 
 ## Parity protocol (sibling spokes)
 

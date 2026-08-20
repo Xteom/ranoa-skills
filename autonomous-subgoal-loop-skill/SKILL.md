@@ -43,7 +43,8 @@ otherwise treat the run as unattended.
 Bootstrap writes `docs/PLAN.md` **last**, after its content passes validation,
 so a crashed bootstrap never leaves a loop-ready-looking entry point.
 
-One autonomous session at a time (parallel sessions are out of scope). A stale
+One autonomous session at a time **per Plan/repo** — coordinated sibling
+repos (multi-repo mode) each run their own. A stale
 `in-progress` subgoal with no live run = a crashed run: recover from its
 write-ahead intent and step journal, don't restart blind.
 

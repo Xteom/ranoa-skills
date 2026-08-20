@@ -15,12 +15,18 @@ first and follow *it*, using this file for the mechanics it doesn't restate.
 3. Skill-stamp check (SKILL.md invariant 5): recompute the stamp per
    plan-template.md. On divergence with no recorded verdict for the loaded
    version: first recover or park any crashed `in-progress` subgoal under
-   its original ruleset, then run the intake; no NEW subgoal work until it
-   resolves.
+   its original ruleset. **Unattended, the intake never self-approves**: log
+   the proposal (intake record), continue the whole session on the stamped
+   ruleset, and leave adoption to an attended `reconfigure`. The one
+   exception is a floor-tightening that is a mechanical strict superset of
+   the old floor (logged as such); a reworded or removed floor line is not a
+   tightening — a loosened floor is a **global blocker**.
 4. Dead-run pass: any OTHER session record still `running` with no closing
    report — regardless of subgoal states — is a dead run: reconstruct its
    report from step journals, checkpoints, git/PR state, and test evidence.
 5. Full readiness contract + the reading map's environment smoke commands.
+   Smoke commands are **read-only existence/reachability checks by
+   definition** — a mutating smoke command is a malformed Plan (repair).
    Readiness failure → repair. A failed smoke on credentials, target
    identity, or a touchable-environment fact = **global blocker**; missing
    optional information (an unreachable sibling) = local, logged.
@@ -121,7 +127,8 @@ Never silent deviation, never implement-and-keep-debating.
               batches subgoals into one coherent increment, the
               justification lives here, and the batched subgoals close
               together at the increment's merge — evidence per subgoal, all
-              referencing that one merge SHA. A dead run's successor reads
+              referencing that one merge SHA; within the increment, a
+              dependency counts as satisfied once its gate 2 passes. A dead run's successor reads
               what was being attempted; a live run measures surprise against
               it.
 2. PLAN       Small steps, written as the subgoal's execution-plan artifact
@@ -219,8 +226,10 @@ the run dies before writing it, the next session reconstructs it (session
 flow step 4) — which works because the step journal and checkpoints were
 written along the way.
 
-**Global blocker paths.** A global blocker halts code and external mutation.
-The Plan report is still written — that's the diagnosis the morning needs —
-UNLESS the Plan's own integrity is the blocker (corruption, suspected
-tampering): then report out-of-band (final message / a separate file outside
-`docs/`) and state explicitly that the Plan was not touched.
+**Global blocker paths.** A global blocker halts code and external mutation —
+including the multi-repo hub status push, which is deferred like any external
+write (the report notes the pending append). The Plan report is still written
+— that's the diagnosis the morning needs — UNLESS the Plan's own integrity is
+the blocker (corruption, suspected tampering): then report out-of-band (final
+message / a separate file outside `docs/`) and state explicitly that the Plan
+was not touched.

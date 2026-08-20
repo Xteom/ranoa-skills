@@ -23,11 +23,15 @@ unattended from it, under these conditions:
   gap-everywhere.
 - The consumed seed gets its lifecycle line: `one-time, executed <date>`.
 
-Gaps: interview the human if present; otherwise record the gap as an open
-problem and take the conservative default (no external-write enablement).
-**Attended bootstrap with a seed is a fast-path confirmation, not silence:**
-present the seed's answers — external-write policies item by item — for
-one-shot confirmation. A seed is a pre-paid interview, not a bypass of it.
+Gaps: interview the human if present. Unattended, a gap on a substantive
+fact topic is a **hard stop** — facts are never guessed: commit a
+`BOOTSTRAP-BLOCKED.md` naming the missing topics and stop with a report
+(likewise when no seed exists at all). A seed should be topic-keyed so
+coverage is checkable, and the adversarial design review (step 4) includes a
+seed-coverage verdict. **Attended bootstrap with a seed is a fast-path
+confirmation, not silence:** present the seed's answers — external-write
+policies item by item — for one-shot confirmation. A seed is a pre-paid
+interview, not a bypass of it.
 
 ## Bootstrap sequence
 
@@ -58,12 +62,13 @@ one-shot confirmation. A seed is a pre-paid interview, not a bypass of it.
    allowlist (compiled from the confirmed policies), reading map, memory
    sections, and an initial subgoal backlog with verifiable acceptance
    criteria (exact command + expected result each). Record the bootstrap
-   itself as **subgoal zero** — acceptance: the readiness content checks pass
-   and the entry point installs; evidence: the install commit itself, merged
-   to the integration branch (subgoal zero is the one subgoal whose evidence
-   IS its closing commit — it cannot run the full loop that doesn't exist
-   yet). **The Plan reaches the integration branch before any code branch is
-   cut.** Run the readiness contract's **content checks** on the candidate,
+   itself as **subgoal zero**, which installs as `in-progress` with its
+   write-ahead: evidence citing its own merge SHA cannot exist before the
+   merge does. The first loop session's first act closes it with the
+   *observed* bootstrap-merge SHA; the step-4 design review fills both of its
+   review slots; a merge that predates CI (nothing to be green yet) uses a
+   one-time merge-without-ci allowance the human or seed authorized. **The
+   Plan reaches the integration branch before any code branch is cut.** Run the readiness contract's **content checks** on the candidate,
    then install `docs/PLAN.md` itself **last**. Wire the entry point per
    plan-template.md "Entry-point wiring" (agent-file pointer + portable
    session prompt + lifecycle lines).
@@ -106,13 +111,12 @@ human can override any of it)
   gets a smoke command (credentials file exists, sibling repos reachable)
   that sessions can run at start — documented worlds and real machines
   diverge.
-- **P:** Only the development environment is touchable. Everything not
-  allowlisted — resource **or verb** — is prohibited, without interpretation.
-  Credentials referenced by path only. Everything runs in containers; no
-  installing dependencies on the host. Freedom inside the container — run,
-  break, delete, experiment; the hard limit is the workspace boundary, and
-  host files, mounted secrets, and shared services sit outside it even when
-  reachable from inside.
+- **P (overridable defaults):** only the development environment is
+  touchable; everything runs in containers; no installing dependencies on
+  the host; freedom to experiment inside the container. *(The safety floor —
+  SKILL.md — also binds here: deny-by-default allowlist, path-only
+  credentials, workspace-confined destruction. It is never overridable and
+  is deliberately not restated in this overridable block.)*
 
 ### E. Code policy
 - **P:** No magic values; every parameter passed explicitly (a default that
@@ -162,8 +166,9 @@ human can override any of it)
   list: ① security — exposing secrets, permission changes, destructive or
   out-of-environment operations; ② outside scope or allowlist; ③ irreversible
   + indecidable from every source of truth. **Blocker scope:** a local
-  blocker parks its subgoal (`blocked` + state, options, recommendation) and
-  the run continues with the next executable subgoal; a global blocker
+  blocker parks its subgoal (`blocked` with plan-template.md's required
+  fields) and the run continues with the next executable subgoal; a global
+  blocker
   (leaked secret, environment ambiguity, compromised CI, invalid allowlist,
   corrupt Plan) halts all mutation — diagnose and report. Before the session
   ends, revisit parked subgoals once with a fresh subagent. The morning
