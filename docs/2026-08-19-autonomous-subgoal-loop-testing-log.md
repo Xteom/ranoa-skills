@@ -274,6 +274,23 @@ verified untouched; rerun below.) Verified on disk after the run:
   bootstrap increment; leftovers-→-repair dispatch probe; clean-branch only
   if allowlisted, else pending-confirmation skip).
 
+- **GREEN-7: stamp divergence + SG-0 closure (loop mode, ran against v8) —
+  PASS.** Session-start order exactly as designed: read-only preflight →
+  session record + reports-index row in ONE commit before any other write →
+  stamp divergence (stamped 7ec9… vs loaded 65e1…) detected; SG-0's
+  in-progress correctly classified as the designed bootstrap handoff, not a
+  crash; **intake logged pending, never self-approved**, whole session run
+  on the stamped ruleset; the tightening exception was correctly declined as
+  unverifiable without the prior skill text (conservative beyond spec).
+  Dead-run pass clean; readiness passed incl. the coverage-matrix
+  denominator check; documented-absent credentials/remote treated as
+  matching the documented world, not blockers. SG-0 closed with the observed
+  install SHA — evidence, status, and the re-derived next-action in the
+  same commit; write-ahead preserved with the delivered note beside it.
+  Ended focus-exhausted; morning report was the last write. (Version skew:
+  ran pre-v9, so SG-0's retrospective gate-2 — added in v9 — wasn't
+  exercised; next real run covers it.)
+
 ## GREEN verdict
 
 All five families pass: bootstrap (trap caught), cold resume with NO skill in
