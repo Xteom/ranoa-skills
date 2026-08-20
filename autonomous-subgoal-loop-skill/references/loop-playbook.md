@@ -44,8 +44,16 @@ first and follow *it*, using this file for the mechanics it doesn't restate.
    the old floor (logged as such); a reworded or removed floor line is not a
    tightening — a loosened floor is a **global blocker**.
 4. Dead-run pass: any OTHER session record still `running` with no closing
-   report — regardless of subgoal states — is a dead run: reconstruct its
-   report from step journals, checkpoints, git/PR state, and test evidence.
+   report AND a stale heartbeat — regardless of subgoal states — is a dead
+   run (an unexpired heartbeat means a live concurrent session: global
+   blocker, do not touch its work). Reconstruct the dead run's report from
+   step journals, checkpoints, git/PR state, and test evidence — then
+   **recover each of its `in-progress` subgoals**: a fresh subagent reads
+   the write-ahead, step journal, and branch/PR state, re-enters the loop at
+   the earliest step the journal doesn't confirm complete (reusing the
+   existing branch; the resumed attempt counts against the retry budget), or
+   parks it `blocked` with the required fields if the state is
+   unreconstructable.
 5. Full readiness contract + the reading map's environment smoke commands.
    Smoke commands are **read-only existence/reachability checks by
    definition** — a mutating smoke command is a malformed Plan (repair).
@@ -56,8 +64,9 @@ first and follow *it*, using this file for the mechanics it doesn't restate.
    its evidence with the now-observed bootstrap-merge SHA, run its gate 2
    retrospectively (fresh reviewer over the bootstrap increment,
    `base..merge`; findings spawn follow-up subgoals, never reopen the
-   install), and set `done`. Then pick the next executable subgoal:
-   first `pending` whose dependencies are all `done`, in backlog order;
+   install), and set `done`. Then select, in order: **recover** any
+   crashed-run `in-progress` subgoal surfaced by step 4; otherwise the first
+   `pending` whose dependencies are all `done`, in backlog order;
    recompute the Plan's next-action record with every state change
    (plan-template.md). During normal selection,
    `blocked` re-enters only with new information; the one exception is step

@@ -144,8 +144,10 @@ constant anywhere in the Plan names its authority the same way — restatements
 without a deferring pointer are how summaries drift into law.
 
 **Sessions & morning reports:** each session opens a session line (id, date,
-focus, status `running`) **and its reports-index row in the same commit,
-after only the read-only integrity preflight** (loop-playbook session flow),
+focus, status `running`, heartbeat timestamp — refreshed by each step-journal
+commit; a heartbeat older than ~1h with no closing report = dead, younger =
+live) **and its reports-index row in the same commit, after only the
+read-only integrity preflight** (loop-playbook session flow),
 and is closed by its morning report (contents per loop-playbook.md). Any
 `running` session without a closing report — regardless of subgoal states —
 means a dead run: a later session reconstructs its report per
@@ -169,9 +171,14 @@ that the content lives at `docs/PLAN.md` at the git root, marker first line.
 Any failure → repair mode:
 
 - [ ] Marker present as first line
-- [ ] The Plan is committed on the declared integration branch — a
-      content-valid Plan present only in the worktree or an unmerged branch
-      is a crashed bootstrap (repair), not loop-ready
+- [ ] **[installed-stage only]** The Plan is committed on the declared
+      integration branch — a content-valid Plan present only in the worktree
+      or an unmerged branch is a crashed bootstrap (repair), not loop-ready.
+      (All other bullets are content checks, runnable on the candidate.)
+- [ ] The allowlist contains an entry for every external verb the effective
+      ruleset's own flow requires (plan-state push, feature-branch push, PR
+      create and merge, hub channels under topic L) — compiled by bootstrap
+      non-optionally
 - [ ] Mission, sources-of-truth table, and scope boundary present
 - [ ] Ruleset passes the completeness contract (a line per topic A–L + safety
       floor + invariants; overrides dated)
@@ -227,7 +234,17 @@ Any failure → repair mode:
    floor's sole pre-Plan exception) IS the report. Plan-present repair
    states report out-of-band per loop-playbook's global-blocker path.
 4. **If attended:** interview only what's missing or contradicted, compile,
-   pass the adversarial design review, re-run readiness, then install.
+   pass the adversarial design review, re-run readiness, then install — the
+   landing increment also **removes any beacon**, so a resolved block never
+   lingers as a false leftover signal.
+
+Skill-owned artifacts are detected by marker lines, not guessed names:
+`docs/PLAN.md` has its marker; the portable session prompt, a consumed
+seed's lifecycle line, and the beacons (`BOOTSTRAP-BLOCKED.md` /
+`RUN-BLOCKED.md`, repo root) each carry
+`<!-- autonomous-subgoal-loop: <kind> -->` near the top. Dispatch keys the
+bootstrap-leftovers class on these markers — a human's plain "see
+docs/PLAN.md" note is not a leftover.
 
 ## Example skeleton (non-normative — structure remains yours to design)
 

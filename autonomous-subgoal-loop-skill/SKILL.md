@@ -38,8 +38,9 @@ read `references/multi-repo.md`.
 The `reconfigure` argument takes precedence over this table: it runs the
 reconfigure flow defined in `references/loop-playbook.md` (attended only;
 requires a ready Plan and no `in-progress` subgoal — finish or park first). Attended vs unattended is decided by one predicate: a human is
-present if the invocation is interactive and a human actually responds;
-otherwise treat the run as unattended.
+present if the invocation is interactive and a human actually responds — an
+unanswered question at turn end resolves it: proceed as unattended (beacon,
+not hang); the next invocation evaluates the predicate afresh.
 
 Bootstrap writes `docs/PLAN.md` **last**, after its content passes validation,
 so a crashed bootstrap never leaves a loop-ready-looking entry point.
@@ -54,7 +55,9 @@ write-ahead intent and step journal, don't restart blind.
 1. Explicit owner/user constraints outrank interview answers and defaults.
 2. Secrets are referenced by path only — never copied into the Plan, code,
    commits, or logs.
-3. External (outside-the-workspace) actions are deny-by-default: only
+3. External (outside-the-workspace) **mutations** are deny-by-default
+   (external *reads* — cloning/fetching declared sources of truth and
+   siblings — are governed by the reading map, not the allowlist): only
    operations matching the Plan's allowlist — *(environment, resource type,
    name/prefix, allowed verbs)* — are permitted. An unlisted verb on a listed
    resource is denied. Every external-write policy the interview enables is
@@ -67,10 +70,12 @@ write-ahead intent and step journal, don't restart blind.
    once compiled and confirmed, the candidate allowlist's git entries govern
    the bootstrap increment itself. The Plan *records* that authorization; a
    candidate Plan never authorizes its own installation. The floor's sole
-   unauthorized-state exception: a blocked bootstrap may push its
-   `BOOTSTRAP-BLOCKED.md` beacon — a docs-only commit to the integration
-   branch (or the default branch if that fact is the gap), nothing else — so
-   the blocked state can reach a human.
+   unauthorized-state exception is the beacon: a blocked bootstrap may push
+   `BOOTSTRAP-BLOCKED.md`, and an integrity-blocked run `RUN-BLOCKED.md` —
+   each a repo-root file in a commit touching nothing else, pushed to the
+   integration branch (or the default branch if that fact is the gap /
+   a quarantine ref when integration is suspect) — so the blocked state can
+   reach a human even from an ephemeral sandbox.
 4. Destruction is confined to the disposable workspace (container/sandbox).
    Host files, mounted secrets, and shared services are outside that boundary
    even when reachable from inside it. The only destructive verb with a
@@ -78,7 +83,9 @@ write-ahead intent and step journal, don't restart blind.
    preflight verifies the ref matches the allowlisted feature prefix, is
    fully merged into the integration branch, and is not the integration
    branch — and like every destructive verb, it enters an allowlist only by
-   live-human confirmation (floor #3).
+   live-human confirmation (floor #3). Further guarded destructive verbs may
+   be minted only at an attended interview/reconfigure, each with a named
+   preflight that passes adversarial review.
 
 ## Mechanical invariants
 

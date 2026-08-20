@@ -20,9 +20,12 @@ unattended from it, under these conditions:
   seed-grantable**: the seed may propose them, and they stay out of the
   allowlist until a live human confirms (safety floor #3).
 - Every seed-derived answer is logged "answered by seed <path>", and the
-  decision log records the seed's commit hash and author. A seed whose
-  authorship the human didn't establish at handoff is treated as
-  gap-everywhere.
+  decision log records the seed's commit hash and author. Authorship is
+  established **mechanically**: the seed is referenced by path from the
+  repo's human-maintained agent-instructions file (CLAUDE.md / AGENTS.md),
+  or its commit author is named there — a merely-committed seed satisfying
+  neither is treated as gap-everywhere (anyone with write access can commit
+  a file; that is not a handoff).
 - The consumed seed gets its lifecycle line: `one-time, executed <date>`.
 
 Gaps: interview the human if present. Unattended, a gap on a substantive
@@ -168,7 +171,9 @@ human can override any of it)
   code from N; max 2 levels; rebase onto integration when N merges;
   force-push only your own stack branches, never the integration branch.
   Auto-merge: CI green = merge, no human approval — a PR waiting overnight is
-  a dead PR. Red CI: iterate with a NEW hypothesis each retry, within a
+  a dead PR. The PR is created (or auto-merge armed) only AFTER the
+  diff-review slot is filled with no unresolved findings — an armed PR is a
+  merge decision, and unreviewed code must not be able to land by CI timing. Red CI: iterate with a NEW hypothesis each retry, within a
   retry budget (default: 5 attempts per subgoal per session — interviewable);
   out of hypotheses or budget → park the subgoal (`blocked` + diagnosis,
   attempts recorded) and return later in the session with a fresh subagent.
