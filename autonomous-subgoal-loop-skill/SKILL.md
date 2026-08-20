@@ -37,10 +37,12 @@ read `references/multi-repo.md`.
 
 The `reconfigure` argument takes precedence over this table: it runs the
 reconfigure flow defined in `references/loop-playbook.md` (attended only;
-requires a ready Plan and no `in-progress` subgoal — finish or park first). Attended vs unattended is decided by one predicate: a human is
-present if the invocation is interactive and a human actually responds — an
-unanswered question at turn end resolves it: proceed as unattended (beacon,
-not hang); the next invocation evaluates the predicate afresh.
+requires a ready Plan and no `in-progress` subgoal — finish or park first).
+
+Attended vs unattended is decided by one predicate: a human is present if
+the invocation is interactive and a human actually responds. An unanswered
+question at turn end resolves it — proceed as unattended (beacon, not hang);
+the next invocation evaluates the predicate afresh.
 
 Bootstrap writes `docs/PLAN.md` **last**, after its content passes validation,
 so a crashed bootstrap never leaves a loop-ready-looking entry point.
@@ -55,37 +57,43 @@ write-ahead intent and step journal, don't restart blind.
 1. Explicit owner/user constraints outrank interview answers and defaults.
 2. Secrets are referenced by path only — never copied into the Plan, code,
    commits, or logs.
-3. External (outside-the-workspace) **mutations** are deny-by-default
-   (external *reads* — cloning/fetching declared sources of truth and
-   siblings — are governed by the reading map, not the allowlist): only
-   operations matching the Plan's allowlist — *(environment, resource type,
-   name/prefix, allowed verbs)* — are permitted. An unlisted verb on a listed
-   resource is denied. Every external-write policy the interview enables is
-   compiled into allowlist entries; loop agents execute the allowlist, never
-   infer authorization from policy prose. Permission changes and destructive
-   verbs never enter an allowlist by default — each requires a live human's
-   explicit confirmation at interview; a seed file can never substitute for
-   that confirmation. **Bootstrap authorization:** before the Plan exists,
-   the live human's (or seed's) confirmed answers ARE the authorization —
-   once compiled and confirmed, the candidate allowlist's git entries govern
-   the bootstrap increment itself. The Plan *records* that authorization; a
-   candidate Plan never authorizes its own installation. The floor's sole
-   unauthorized-state exception is the beacon: a blocked bootstrap may push
-   `BOOTSTRAP-BLOCKED.md`, and an integrity-blocked run `RUN-BLOCKED.md` —
-   each a repo-root file in a commit touching nothing else, pushed to the
-   integration branch (or the default branch if that fact is the gap /
-   a quarantine ref when integration is suspect) — so the blocked state can
-   reach a human even from an ephemeral sandbox.
-4. Destruction is confined to the disposable workspace (container/sandbox).
-   Host files, mounted secrets, and shared services are outside that boundary
-   even when reachable from inside it. The only destructive verb with a
-   sanctioned form is `delete-merged-feature-branch`, whose mandatory
-   preflight verifies the ref matches the allowlisted feature prefix, is
-   fully merged into the integration branch, and is not the integration
-   branch — and like every destructive verb, it enters an allowlist only by
-   live-human confirmation (floor #3). Further guarded destructive verbs may
-   be minted only at an attended interview/reconfigure, each with a named
-   preflight that passes adversarial review.
+3. **External mutations are deny-by-default.** Only operations matching the
+   Plan's allowlist — *(environment, resource type, name/prefix, allowed
+   verbs)* — are permitted.
+   - External *reads* — cloning/fetching declared sources of truth and
+     siblings — are governed by the reading map, not the allowlist.
+   - An unlisted verb on a listed resource is denied.
+   - Every external-write policy the interview enables is compiled into
+     allowlist entries; loop agents execute the allowlist, never infer
+     authorization from policy prose.
+   - Permission changes and destructive verbs never enter an allowlist by
+     default — each requires a live human's explicit confirmation at
+     interview; a seed file can never substitute for that confirmation.
+   - **Bootstrap authorization:** before the Plan exists, the live human's
+     (or seed's) confirmed answers ARE the authorization — once compiled and
+     confirmed, the candidate allowlist's git entries govern the bootstrap
+     increment itself. The Plan *records* that authorization; a candidate
+     Plan never authorizes its own installation.
+   - **The beacon — the floor's sole unauthorized-state exception:** a
+     blocked bootstrap may push `BOOTSTRAP-BLOCKED.md`, and an
+     integrity-blocked run `RUN-BLOCKED.md` — each a repo-root file in a
+     commit touching nothing else, pushed to the integration branch (or the
+     default branch if that fact is the gap / a quarantine ref when
+     integration is suspect) — so the blocked state can reach a human even
+     from an ephemeral sandbox.
+4. **Destruction is confined to the disposable workspace**
+   (container/sandbox).
+   - Host files, mounted secrets, and shared services are outside that
+     boundary even when reachable from inside it.
+   - The only destructive verb with a sanctioned form is
+     `delete-merged-feature-branch`; its mandatory preflight verifies the
+     ref matches the allowlisted feature prefix, is fully merged into the
+     integration branch, and is not the integration branch. Like every
+     destructive verb, it enters an allowlist only by live-human
+     confirmation (floor #3).
+   - Further guarded destructive verbs may be minted only at an attended
+     interview/reconfigure, each with a named preflight that passes
+     adversarial review.
 
 ## Mechanical invariants
 
@@ -100,13 +108,16 @@ write-ahead intent and step journal, don't restart blind.
 5. The Plan records the skill version/hash it was compiled from (stamp format
    and intake record: plan-template.md). A loaded skill that diverges from
    that stamp is a **proposed ruleset change** — never silently followed.
-   While intake is pending: the stamped ruleset governs ALL work — the
-   diverged skill is never followed; safety is the most restrictive
-   combination of old and new floors; a crashed `in-progress` subgoal is
-   recovered or parked first, under its original ruleset. Adoption happens
-   only through attended `reconfigure` (loop-playbook.md). Verdicts (accept
-   or reject) are recorded per skill version, so a rejected version never
-   re-fires intake.
+   While intake is pending:
+   - the stamped ruleset governs ALL work — the diverged skill is never
+     followed;
+   - safety is the most restrictive combination of old and new floors;
+   - a crashed `in-progress` subgoal is recovered or parked first, under
+     its original ruleset;
+   - adoption happens only through attended `reconfigure`
+     (loop-playbook.md);
+   - verdicts (accept or reject) are recorded per skill version, so a
+     rejected version never re-fires intake.
 
 Everything else — including the loop shape — is a default the interview can
 override per project.

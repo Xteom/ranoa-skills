@@ -151,28 +151,30 @@ Never silent deviation, never implement-and-keep-debating.
 ## The loop (per subgoal)
 
 ```
-1. BRIEF      Fresh implementer reads docs/PLAN.md: state, lessons flagged for
-              this subgoal, its read list — the INITIAL boundary; expanding
-              it is allowed and logged (path + why, one journal line), and a
-              recurring expansion updates the subgoal's read list for the
-              future. Before touching code,
-              write-ahead the intent as a PREDICTION in the Plan:
-              "in-progress: attempting X, expect Y" — committed as its own
-              dedicated commit ending this step (the cleanest crash-recovery
-              artifact a run leaves). Plan-state writes — write-ahead, step
-              journal, session records — land on the INTEGRATION branch;
-              only code rides the feature branch, so a deleted or unmerged
-              branch never strands the Plan's memory of it. (Mechanism:
-              a second worktree on integration for Plan-state, or commit
-              code first and switch clean — never mix code into a
-              plan-state commit or carry uncommitted work across a switch.) If the branch
-              batches subgoals into one coherent increment, the
-              justification lives here, and the batched subgoals close
-              together at the increment's merge — evidence per subgoal, all
-              referencing that one merge SHA; within the increment, a
-              dependency counts as satisfied once its gate 2 passes. A dead run's successor reads
-              what was being attempted; a live run measures surprise against
-              it.
+1. BRIEF      Fresh implementer reads docs/PLAN.md: state, lessons flagged
+              for this subgoal, and its read list.
+              · Read list = the INITIAL boundary. Expanding it is allowed and
+                logged (path + why, one journal line); a recurring expansion
+                updates the subgoal's read list for the future.
+              · Before touching code, write-ahead the intent as a PREDICTION
+                in the Plan — "in-progress: attempting X, expect Y" — as its
+                own dedicated commit ending this step (the cleanest
+                crash-recovery artifact a run leaves). A dead run's
+                successor reads what was being attempted; a live run
+                measures surprise against it.
+              · Plan-state writes — write-ahead, step journal, session
+                records — land on the INTEGRATION branch; only code rides
+                the feature branch, so a deleted or unmerged branch never
+                strands the Plan's memory of it. Mechanism: a second
+                worktree on integration for Plan-state, or commit code first
+                and switch clean — never mix code into a plan-state commit
+                or carry uncommitted work across a switch.
+              · Batching: if the branch batches subgoals into one coherent
+                increment, the justification lives here, and the batched
+                subgoals close together at the increment's merge — evidence
+                per subgoal, all referencing that one merge SHA; within the
+                increment, a dependency counts as satisfied once its gate 2
+                passes.
 2. PLAN       Small steps, written as the subgoal's execution-plan artifact
               (bounded; stored where the Plan's structure puts it; referenced
               from the subgoal record — this is what the reviewer receives
@@ -223,28 +225,32 @@ Never silent deviation, never implement-and-keep-debating.
               existing entry, open an Inconsistencies item, and route the
               model change (restructure, source-authority doubt) through the
               decision log. Recorded, never silent.
-8. UPDATE     Merge first (per the git policy) and verify the integrated
-              tree matches the reviewed head (squash/merge commits get new
-              SHAs — compare trees, and record reviewed head and merge SHA
-              as separate fields). Then close: fill the subgoal's evidence
-              slot — date, the verification command fixed at PLAN as
-              actually run, its actual result, reviewed head + merge SHA/PR
-              — and only then set `done`. The status transition and its evidence
-              land in the SAME commit, and evidence is written from the
-              result, never in anticipation of one. Closing PRESERVES the
-              write-ahead prediction: add the delivered note beside it (never
-              overwrite it) — REFLECT reads the delivered-vs-attempted delta.
-              Post-merge findings never reopen `done`: they spawn a suffixed
-              follow-up subgoal. A crash can leave an unmerged subgoal
-              `in-progress`; it can never leave `done` pointing at unmerged
-              code. If the verification command cannot run here, the subgoal
-              is `blocked` with its required fields (diagnosis, state,
-              hypotheses tried, options, recommendation, scope) — the
-              criterion is never silently downgraded to whatever was
-              runnable. Update decisions and problems; restructure the Plan
-              if needed (with adversary); clean the branch ONLY if its verb
-              is allowlisted — otherwise log a pending-confirmation skip and
-              continue, never a blocker; archive the execution-plan artifact.
+8. UPDATE     Merge first (per the git policy), then close.
+              · Verify the integrated tree matches the reviewed head
+                (squash/merge commits get new SHAs — compare trees; record
+                reviewed head and merge SHA as separate fields).
+              · Fill the subgoal's evidence slot — date, the verification
+                command fixed at PLAN as actually run, its actual result,
+                reviewed head + merge SHA/PR — and only then set `done`.
+                Status transition and evidence land in the SAME commit;
+                evidence is written from the result, never in anticipation
+                of one. A crash can leave an unmerged subgoal `in-progress`;
+                it can never leave `done` pointing at unmerged code.
+              · If the verification command cannot run here, the subgoal is
+                `blocked` with its required fields (diagnosis, state,
+                hypotheses tried, options, recommendation, scope) — the
+                criterion is never silently downgraded to whatever was
+                runnable.
+              · Closing PRESERVES the write-ahead prediction: add the
+                delivered note beside it (never overwrite it) — REFLECT
+                reads the delivered-vs-attempted delta.
+              · Post-merge findings never reopen `done`: they spawn a
+                suffixed follow-up subgoal.
+              · Update decisions and problems; restructure the Plan if
+                needed (with adversary); clean the branch ONLY if its verb
+                is allowlisted — otherwise log a pending-confirmation skip
+                and continue, never a blocker; archive the execution-plan
+                artifact.
 ```
 
 **Step journal:** after each completed step, append one compact line to the

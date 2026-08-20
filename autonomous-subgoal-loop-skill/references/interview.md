@@ -72,26 +72,27 @@ interview, not a bypass of it.
    ruleset (complete per the completeness contract), sources of truth, scope,
    allowlist (compiled from the confirmed policies), reading map, memory
    sections, and an initial subgoal backlog with verifiable acceptance
-   criteria (exact command + expected result each). Record the bootstrap
-   itself as **subgoal zero**, which installs as `in-progress` with its
-   write-ahead: evidence citing its own merge SHA cannot exist before the
-   merge does. The first loop session closes it (session flow step 6) with the
-   *observed* bootstrap-merge SHA; the step-4 design review fills gate 1,
-   and gate 2 runs retrospectively at that closure — a fresh reviewer over
-   the actual bootstrap increment (`base..merge`, Plan + wiring); findings
-   spawn follow-up subgoals, they never reopen the install. A merge that
-   predates CI (nothing to be green yet) uses a
-   one-time merge-without-ci allowance the human or seed authorized. **The
-   Plan reaches the integration branch before any code branch is cut.** Run
-   the readiness contract's **content checks** on the candidate, then land
-   the install as **one atomic bootstrap increment**: a single PR/merge
-   carrying `docs/PLAN.md` (written last within it) together with the
-   entry-point wiring — the bootstrap PR is also the landing path for
-   root-level wiring files, since `push-plan-state` covers `docs/**` only; a
-   crash never leaves wiring without a Plan or a Plan without wiring. Wire
-   the entry point per
-   plan-template.md "Entry-point wiring" (agent-file pointer + portable
-   session prompt + lifecycle lines).
+   criteria (exact command + expected result each).
+   - **The Plan reaches the integration branch before any code branch is
+     cut.**
+   - **Subgoal zero:** the bootstrap records itself as a subgoal, installed
+     as `in-progress` with its write-ahead — evidence citing its own merge
+     SHA cannot exist before the merge does. The first loop session closes
+     it (session flow step 6) with the *observed* bootstrap-merge SHA; the
+     step-4 design review fills gate 1, and gate 2 runs retrospectively at
+     that closure — a fresh reviewer over the actual bootstrap increment
+     (`base..merge`, Plan + wiring); findings spawn follow-up subgoals,
+     they never reopen the install.
+   - A merge that predates CI (nothing to be green yet) uses a one-time
+     merge-without-ci allowance the human or seed authorized.
+   - **Install atomically:** run the readiness contract's content checks on
+     the candidate, then land ONE bootstrap increment — a single PR/merge
+     carrying `docs/PLAN.md` (written last within it) together with the
+     entry-point wiring (agent-file pointer + portable session prompt +
+     lifecycle lines, per plan-template.md "Entry-point wiring"). The
+     bootstrap PR is also the landing path for root-level wiring files,
+     since `push-plan-state` covers `docs/**` only. A crash never leaves
+     wiring without a Plan or a Plan without wiring.
 6. **Report.** What was decided; every assumption marked "assumption to
    validate"; the first executable subgoal.
 
