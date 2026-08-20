@@ -82,12 +82,13 @@ write-ahead intent and step journal, don't restart blind.
 5. The Plan records the skill version/hash it was compiled from (stamp format
    and intake record: plan-template.md). A loaded skill that diverges from
    that stamp is a **proposed ruleset change** — never silently followed.
-   While intake is pending: the stamped ruleset governs non-safety behavior;
-   safety is the most restrictive combination of old and new floors; a
-   crashed `in-progress` subgoal is recovered or parked first, under its
-   original ruleset; no new subgoal starts until intake resolves. Verdicts
-   (accept or reject) are recorded per skill version, so a rejected version
-   never re-fires intake.
+   While intake is pending: the stamped ruleset governs ALL work — the
+   diverged skill is never followed; safety is the most restrictive
+   combination of old and new floors; a crashed `in-progress` subgoal is
+   recovered or parked first, under its original ruleset. Adoption happens
+   only through attended `reconfigure` (loop-playbook.md). Verdicts (accept
+   or reject) are recorded per skill version, so a rejected version never
+   re-fires intake.
 
 Everything else — including the loop shape — is a default the interview can
 override per project.

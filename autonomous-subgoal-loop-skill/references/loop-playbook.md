@@ -30,9 +30,13 @@ first and follow *it*, using this file for the mechanics it doesn't restate.
    Readiness failure → repair. A failed smoke on credentials, target
    identity, or a touchable-environment fact = **global blocker**; missing
    optional information (an unreachable sibling) = local, logged.
-6. Pick the next executable subgoal: first `pending` whose dependencies are
-   all `done`, in backlog order; recompute the Plan's next-action record
-   with every state change (plan-template.md). During normal selection,
+6. If subgoal zero sits `in-progress` from bootstrap, close it first — its
+   closure is a record update, not a loop run: fill its evidence with the
+   now-observed bootstrap-merge SHA (its design review already fills both
+   review slots) and set `done`. Then pick the next executable subgoal:
+   first `pending` whose dependencies are all `done`, in backlog order;
+   recompute the Plan's next-action record with every state change
+   (plan-template.md). During normal selection,
    `blocked` re-enters only with new information; the one exception is step
    8's end-of-session fresh-eyes revisit, which needs none. Session-focus
    argument narrows this selection.
