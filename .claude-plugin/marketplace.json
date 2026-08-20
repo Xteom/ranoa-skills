@@ -1,0 +1,15 @@
+{
+  "name": "ranoa-skills",
+  "description": "Ranoa's open-source Claude Code toolkit: skills and cross-model agents.",
+  "owner": {
+    "name": "Mateo",
+    "url": "https://github.com/Xteom"
+  },
+  "plugins": [
+    {
+      "name": "ranoa",
+      "source": "./",
+      "description": "Repo onboarding-guide generation and a cross-model codex-reviewer agent for independent second opinions."
+    }
+  ]
+}

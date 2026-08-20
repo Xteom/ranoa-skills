@@ -1,0 +1,13 @@
+{
+  "name": "ranoa",
+  "description": "Ranoa's Claude Code toolkit: repo onboarding-guide generation and a cross-model codex-reviewer agent for independent second opinions.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Mateo",
+    "url": "https://github.com/Xteom"
+  },
+  "homepage": "https://github.com/Xteom/ranoa-skills",
+  "repository": "https://github.com/Xteom/ranoa-skills",
+  "license": "MIT",
+  "keywords": ["skills", "agents", "code-review", "onboarding", "codex"]
+}
